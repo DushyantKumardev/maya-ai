@@ -1,0 +1,292 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+@variant dark (.dark &);
+
+:root {
+  /* Layout Constants — unchanged */
+  --user-chat-width: 70%;
+  --sidebar-width: 260px;
+  --sidebar-section-margin-top: 1.25rem;
+  --sidebar-section-first-margin-top: 0.5rem;
+  --sidebar-expanded-section-margin-bottom: 1.25rem;
+  --sidebar-collapsed-section-margin-bottom: 0.75rem;
+  --sidebar-rail-width: calc(13 * var(--spacing));
+  --header-height: calc(13 * var(--spacing));
+  --chat-max-width: 72rem;
+  --keyboard-height: 0px;
+
+  /* Warm off-white base instead of pure white — reduces eye strain */
+  --background: #f8f7f4;
+  --foreground: #1a1a18;
+  --card: #ffffff;
+  --card-foreground: #1a1a18;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a18;
+
+  /* Primary stays dark for strong contrast */
+  --primary: #1a1a18;
+  --primary-foreground: #ffffff;
+
+  /* Secondary lifted slightly for better surface hierarchy */
+  --secondary: #eeecea;
+  --secondary-foreground: #3a3a38;
+
+  /* Muted toned down — was too close to accent */
+  --muted: #e9e8e4;
+  --muted-foreground: #5c5b58; /* was #6b7280 — warmer, better contrast */
+  --accent: #e9e8e4;
+  --accent-foreground: #1a1a18;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  /* Border more visible than before */
+  --border: #d4d2ce;
+  --input: #ffffff;
+  --ring: #1a1a18;
+  --radius: 1rem;
+
+  /* Sidebar distinct from background */
+  --sidebar: #f0eee9;
+  --sidebar-foreground: #1a1a18;
+  --sidebar-primary: #1a1a18;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e2dfdb;
+  --sidebar-accent-foreground: #1a1a18;
+  --sidebar-border: #cbc9c4;
+  --sidebar-ring: #1a1a18;
+
+  --chart-1: #10a37f;
+  --chart-2: #2a2a2a;
+  --chart-3: #f4ac36;
+  --chart-4: #ef4146;
+  --chart-5: #3c46ff;
+
+  --shadow-color: 0 0% 0%;
+  --shadow-opacity: 0.05;
+  --shadow-blur: 4px;
+  --shadow-spread: 0px;
+  --shadow-offset-x: 0px;
+  --shadow-offset-y: 2px;
+}
+
+.dark {
+  /* Softer than pure #0d0d0d — less harsh, better depth perception */
+  --background: #141414;
+  --foreground: #e8e6e1; /* warm white, easier on eyes than #ececec */
+  --card: #1e1e1c;
+  --card-foreground: #e8e6e1;
+  --popover: #232320;
+  --popover-foreground: #e8e6e1;
+
+  --primary: #e8e6e1;
+  --primary-foreground: #141414;
+
+  /* Secondary and muted stepped more clearly apart */
+  --secondary: #252522;
+  --secondary-foreground: #c8c6c1;
+  --muted: #2a2a27;
+  --muted-foreground: #9ca3a0; /* was #737373 — WCAG AA fail fixed */
+  --accent: #2f2f2c;
+  --accent-foreground: #e8e6e1;
+
+  --destructive: #c0392b; /* slightly brighter than #b91c1c for dark bg */
+  --destructive-foreground: #fef2f2;
+
+  /* Border more visible — was too close to background */
+  --border: #383835;
+  --input: #252522;
+  --ring: #6b6b68;
+
+  /* Sidebar slightly darker than bg — creates real depth */
+  --sidebar: #111110;
+  --sidebar-foreground: #c8c6c1;
+  --sidebar-primary: #e8e6e1;
+  --sidebar-primary-foreground: #141414;
+  --sidebar-accent: #222220;
+  --sidebar-accent-foreground: #e8e6e1;
+  --sidebar-border: #2c2c29;
+  --sidebar-ring: #6b6b68;
+
+  --chart-1: #4f9cf9;
+  --chart-2: #34d399;
+  --chart-3: #f59e0b;
+  --chart-4: #ef4444;
+  --chart-5: #a78bfa;
+}
+
+@theme inline {
+  /* Typography */
+  --font-sans: var(--font-app, ui-sans-serif, system-ui, sans-serif);
+  --font-serif: var(
+    --font-merriweather,
+    "Merriweather",
+    Georgia,
+    Cambria,
+    "Times New Roman",
+    serif
+  );
+  --font-mono: var(
+    --font-jetbrains-mono,
+    "JetBrains Mono",
+    ui-monospace,
+    SFMono-Regular,
+    monospace
+  );
+
+  /* Core Colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Chart Colors */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Sidebar Colors */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Radius Scale */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(13 * var(--spacing));
+
+  /* Chat Specifics */
+  --max-width-chat: var(--chat-max-width);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Custom Animations */
+  @keyframes shimmer {
+    0% {
+      background-position: 200% center;
+    }
+    100% {
+      background-position: -200% center;
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2.5s linear infinite;
+    background-size: 200% auto;
+  }
+
+  .animate-slide-in-from-bottom-4 {
+    @apply animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out fill-mode-forwards;
+  }
+
+  /* High-Specificity Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px !important;
+    height: 5px !important;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent !important;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border) !important;
+    border-radius: 10px !important;
+    border: 1px solid transparent !important;
+    background-clip: content-box !important;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground) !important;
+    background-clip: content-box !important;
+  }
+}
+
+/* UI Component Keyframes */
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@keyframes collapsible-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}

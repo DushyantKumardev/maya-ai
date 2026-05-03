@@ -1,0 +1,5 @@
+export const HANDSFREE_START_BEEP =
+  "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YXIGAACBhYqFbF1fdJivrJBhNjNFfY2xnG8THy1UbnV4dG5wbHRsbm5ubmxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGs=";
+export const HANDSFREE_STOP_BEEP =
+  "data:audio/wav;base64,UklGRl9vT1BXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YXIGAACBhYqFbF1fdJivrJBhNjNFfY2xnG8THy1UbnV4dG5wbHRsbm5ubmxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGs=";
+export const CHAT_COMPLETION_BEEP = "/sounds/completion-sound.mp3";

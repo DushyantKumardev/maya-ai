@@ -1,0 +1,27 @@
+@keyframes shimmer-move {
+  0%   { transform: translateX(-150%); }
+  100% { transform: translateX(150%); }
+}
+
+.shimmer-wave {
+  animation: shimmer-move var(--shimmer-duration, 1.8s)
+             cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  /* dark mode: wave over light-on-dark surface */
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, var(--shimmer-opacity, 0.08)) 50%,
+    transparent 100%
+  );
+}
+
+/* light mode: flip to dark wave */
+:root:not(.dark) .shimmer-wave {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 0, 0, var(--shimmer-opacity, 0.05)) 50%,
+    transparent 100%
+  );
+}
