@@ -46,6 +46,9 @@ npm install
 ### 2. Configure
 Copy `.env.example` to `.env` and configure your [Environment Variables](./docs/environment-variables.md).
 
+### 3. Make Sure 
+Make sure that MongoDB is installed and running on your system.
+
 ### 3. Run
 ```bash
 npm run dev
