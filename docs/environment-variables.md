@@ -41,5 +41,23 @@ openssl rand -base64 32
 
 ---
 
+## ☁️ Cloud & Serverless Deployments (Vercel)
+
+When deploying Maya AI to serverless environments (like Vercel) where the local filesystem is read-only or ephemeral, you must configure **Cloud Mode** and **Cloudinary** for file uploads.
+
+| Variable | Description | Allowed Values | Default |
+| :--- | :--- | :--- | :--- |
+| `NEXT_PUBLIC_APP_MODE` | Determines if the app uses serverless cloud drivers or local disk drives. | `cloud` \| `self-hosted` | `self-hosted` |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary account Cloud Name. | (None) | (None) |
+| `CLOUDINARY_API_KEY` | Cloudinary API Key. | (None) | (None) |
+| `CLOUDINARY_API_SECRET` | Cloudinary API Secret. | (None) | (None) |
+
+### 🔒 Mode Behaviors
+
+- **`self-hosted` (Default):** Uploads are saved to the local folder `public/storage/generated` and served statically. Excellent for local privacy and standalone servers.
+- **`cloud`:** Uploads are streamed straight to Cloudinary's secure cloud storage. All frontend redirects and agent vision loaders resolve using high-performance Cloudinary URLs. Recommended for Vercel.
+
+---
+
 ## 🌐 Next Steps
 After configuring your `.env` file, proceed to the **[Getting Started](./getting-started.md)** guide to run the application.

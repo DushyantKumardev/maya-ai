@@ -4,6 +4,21 @@ All notable changes to **Maya AI** will be documented in this file.
 
 ---
 
+## [1.1.0] - 2026-05-17
+
+### Added
+- **Cloud Mode (`NEXT_PUBLIC_APP_MODE`)**: Added a setting to switch between `self-hosted` (local disk storage) and `cloud` (Cloudinary cloud storage) modes.
+- **Incognito Mode (Ghost Mode)**: Added a local-only chat option that keeps conversations in browser memory and bypasses MongoDB saves entirely.
+- **Mode Toggle Safeguards**: Configured automatic session resets when switching privacy modes to keep chats separate, and enabled auto-upgrades if a local chat is switched to standard mode.
+
+### Changed & Improved
+- **Sidebar & Header Caching**: Added an in-memory title cache to eliminate redundant network reads when toggling the sidebar or switching conversations.
+- **Strict Mode Concurrency Guard**: Added a loading reference tracker to discard duplicate concurrent database fetches caused by React Strict Mode in development.
+- **Optimistic UI Rendering**: Updated the submission logic to clear inputs instantly and show image preview thumbnails before upload completion.
+- **Serverless and Vercel Compatibility**: Intercepted cloud assets and routed them via API redirects, eliminating direct disk-write dependencies for static production builds.
+
+---
+
 ## [1.0.0] - 2026-05-03
 
 ### 🚀 Initial Stable Release

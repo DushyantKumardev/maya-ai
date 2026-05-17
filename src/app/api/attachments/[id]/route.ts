@@ -24,6 +24,10 @@ export async function GET(
 
     const { mimeType, path: filepath, filename } = attachment;
 
+    if (filepath.startsWith("http://") || filepath.startsWith("https://")) {
+      return NextResponse.redirect(filepath);
+    }
+
     try {
       const buffer = await fs.readFile(filepath);
 

@@ -24,11 +24,22 @@ interface ConversationItem {
   updatedAt: string;
 }
 
+// Module-level cache to persist conversation history across sidebar open/close toggles and Radix sheet unmounts
+let cachedConversations: ConversationItem[] | null = null;
+let lastFetchTime = 0;
+const CACHE_TTL = 30000; // 30 seconds Cache TTL
+
+export function getCachedConversationTitle(id: string): string | null {
+  if (!cachedConversations) return null;
+  const found = cachedConversations.find((c) => c._id === id);
+  return found ? found.title : null;
+}
+
 const ConversationList = ({ open }: { open: boolean }) => {
   const [conversations, setConversations] = React.useState<ConversationItem[]>(
-    [],
+    cachedConversations || [],
   );
-  const [isLoadingHistory, setIsLoadingHistory] = React.useState(true);
+  const [isLoadingHistory, setIsLoadingHistory] = React.useState(!cachedConversations);
   const pathname = usePathname();
 
   const [activeConversationId, setActiveConversationId] = React.useState<
@@ -41,13 +52,22 @@ const ConversationList = ({ open }: { open: boolean }) => {
 
   const { status } = useSession();
 
-  const fetchConversations = useCallback(async () => {
+  const fetchConversations = useCallback(async (force = false) => {
     if (status === "authenticated") {
+      // Return cached list if still within Cache TTL and not forced
+      if (!force && cachedConversations && Date.now() - lastFetchTime < CACHE_TTL) {
+        setConversations(cachedConversations);
+        setIsLoadingHistory(false);
+        return;
+      }
+
       try {
         const res = await fetch(API_ENDPOINTS.CONVERSATIONS.BASE);
         if (res.ok) {
           const data = await res.json();
           setConversations(data);
+          cachedConversations = data;
+          lastFetchTime = Date.now();
         }
       } catch (err) {
         console.error("Error fetching conversations:", err);
@@ -65,7 +85,11 @@ const ConversationList = ({ open }: { open: boolean }) => {
         method: "DELETE",
       });
       if (res.ok) {
-        setConversations((prev) => prev.filter((c) => c._id !== id));
+        setConversations((prev) => {
+          const updated = prev.filter((c) => c._id !== id);
+          cachedConversations = updated;
+          return updated;
+        });
         if (window.location.pathname === `/c/${id}`) {
           window.dispatchEvent(new CustomEvent("new-chat"));
           window.history.replaceState(null, "", "/c");
@@ -93,7 +117,7 @@ const ConversationList = ({ open }: { open: boolean }) => {
 
     const handleConversationUpdated = () => {
       setGeneratingTitleId(null);
-      fetchConversations();
+      fetchConversations(true); // Force fetch on conversation updates to get fresh titles/list!
     };
 
     window.addEventListener(

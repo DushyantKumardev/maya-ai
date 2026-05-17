@@ -3,6 +3,9 @@ import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { API_ENDPOINTS } from "@/lib/constants/api";
+import connectDB from "@/server/db/mongo";
+import Attachment from "@/server/db/models/attachment-model";
+import { saveFile } from "@/server/utils/storage";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -21,6 +24,7 @@ interface StatusUpdate {
 interface ImageGenerationSystemOptions {
   onStatusUpdate?: (params: StatusUpdate) => void;
   settings?: AppSettings;
+  userId?: string;
 }
 
 export interface ImageGenerationResponse {
@@ -134,13 +138,6 @@ export async function imageGeneration(
   onStatusUpdate?.({ message: `Creating image` });
 
   try {
-    const storageDir = path.join(process.cwd(), "storage", "generated");
-    try {
-      await fs.access(storageDir);
-    } catch {
-      await fs.mkdir(storageDir, { recursive: true });
-    }
-
     // Generate `count` images (capped at 4)
     const clampedCount = Math.min(Math.max(count, 1), 4);
     const results: Array<{ url: string; prompt: string }> = [];
@@ -151,12 +148,28 @@ export async function imageGeneration(
       }
 
       const imageBuffer = await generateImageWithPollinations(prompt.trim(), aspect_ratio);
-
+      const base64Data = imageBuffer.toString("base64");
       const fileName = `img_${crypto.randomUUID()}.jpg`;
-      const filePath = path.join(storageDir, fileName);
-      await fs.writeFile(filePath, imageBuffer);
 
-      results.push({ url: API_ENDPOINTS.STORAGE.GENERATED(fileName), prompt: prompt.trim() });
+      const uploadResult = await saveFile(base64Data, fileName, "image/jpeg", "generated");
+
+      if (uploadResult.isCloud) {
+        try {
+          await connectDB();
+          await Attachment.create({
+            userId: sysOptions.userId || "system",
+            kind: "image",
+            mimeType: "image/jpeg",
+            filename: fileName,
+            size: imageBuffer.length,
+            path: uploadResult.path,
+          });
+        } catch (dbErr) {
+          console.error("Failed to register generated image in database:", dbErr);
+        }
+      }
+
+      results.push({ url: uploadResult.url, prompt: prompt.trim() });
     }
 
     const finalResult = {

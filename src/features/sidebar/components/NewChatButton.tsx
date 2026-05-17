@@ -14,9 +14,7 @@ const NewChatButton = ({ variant, size, iconOnly }: NewChatButtonProps) => {
   const router = useRouter();
 
   const handleNewChat = () => {
-    // Only navigate and reset if we're not already starting a new chat
     window.dispatchEvent(new CustomEvent("new-chat"));
-    router.push("/c");
   };
 
   return (

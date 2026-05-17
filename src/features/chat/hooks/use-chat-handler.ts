@@ -83,6 +83,7 @@ export function useChatHandler(options: UseChatHandlerOptions = {}) {
   messagesRef.current = messages;
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const loadingIdRef = useRef<string | null>(null);
 
   /**
    * Fetches an existing conversation (messages & metadata) from the server.
@@ -94,6 +95,11 @@ export function useChatHandler(options: UseChatHandlerOptions = {}) {
       setIsLoadingConversation(false);
       return;
     }
+
+    // Skip if we are already fetching this specific conversation to prevent concurrent duplicate requests
+    if (loadingIdRef.current === id) return;
+    loadingIdRef.current = id;
+
     setIsLoadingConversation(true);
     try {
       const res = await fetch(API_ENDPOINTS.CONVERSATIONS.BY_ID(id));
@@ -108,6 +114,7 @@ export function useChatHandler(options: UseChatHandlerOptions = {}) {
       setError(message);
     } finally {
       setIsLoadingConversation(false);
+      loadingIdRef.current = null;
     }
   }, [status]);
 
@@ -267,13 +274,16 @@ export function useChatHandler(options: UseChatHandlerOptions = {}) {
         }
 
         await saveMessages(activeConvId, finalMessages);
-        window.dispatchEvent(new CustomEvent("conversation-updated"));
         
-        if (finalMessages.length === 2) {
-          setTimeout(
-            () => window.dispatchEvent(new CustomEvent("conversation-updated")),
-            3500,
-          );
+        if (settings?.persistConversations !== false && !activeConvId.startsWith("ephemeral_")) {
+          window.dispatchEvent(new CustomEvent("conversation-updated"));
+          
+          if (finalMessages.length === 2) {
+            setTimeout(
+              () => window.dispatchEvent(new CustomEvent("conversation-updated")),
+              3500,
+            );
+          }
         }
       };
 
@@ -560,7 +570,7 @@ export function useChatHandler(options: UseChatHandlerOptions = {}) {
     files: Array<
       Pick<
         MessageAttachment,
-        "filename" | "mimeType" | "size" | "extractedText"
+        "filename" | "mimeType" | "size" | "extractedText" | "kind"
       > & {
         dataUrl: string;
       }
@@ -578,43 +588,39 @@ export function useChatHandler(options: UseChatHandlerOptions = {}) {
     if ((!content.trim() && !imageData && files.length === 0) || isLoading)
       return;
 
-    let attachmentUrl = null;
-    if (imageData) {
-      const imageAttachment = await uploadAttachment({
-        file: imageData,
-        mimeType: "image/jpeg",
-      });
-      attachmentUrl = imageAttachment?.url || null;
-    }
+    // 1. Clear input state instantly to provide immediate UI feedback & prevent double-submits
+    setTextInput("");
+    setReplyTo(null);
+    setIsLoading(true);
+    setError(null);
 
-    // 2. Upload and get URLs
-    const uploadedFiles = (
-      await Promise.all(
-        files.map((file) =>
-          uploadAttachment({
-            file: file.dataUrl,
-            filename: file.filename,
-            mimeType: file.mimeType,
-            size: file.size,
-            extractedText: file.extractedText,
-          }),
-        ),
-      )
-    ).filter(Boolean) as MessageAttachment[];
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
+    const userMessageId = Date.now().toString();
+    
+    // Create optimistic user message with local data/base64 previews
+    const optimisticUserMessage: Message = {
+      id: userMessageId,
       role: "user",
       content: content,
       replyTo: replyTo || undefined,
-      ...(attachmentUrl ? { image: attachmentUrl } : {}),
-      ...(uploadedFiles.length ? { files: uploadedFiles } : {}),
+      ...(imageData ? { image: imageData } : {}),
+      ...(files.length
+        ? {
+            files: files.map((f, idx) => ({
+              id: `opt_${Date.now()}_${idx}`,
+              filename: f.filename,
+              mimeType: f.mimeType,
+              size: f.size,
+              kind: f.kind,
+              path: f.dataUrl,
+              url: f.dataUrl,
+            })),
+          }
+        : {}),
       model: settings.modelId,
       provider: settings.provider,
       createdAt: new Date(),
     };
 
-    const updatedMessages = [...messages, userMessage];
     const assistantMessageId = (Date.now() + 1).toString();
     const assistantMessage: Message = {
       id: assistantMessageId,
@@ -623,44 +629,97 @@ export function useChatHandler(options: UseChatHandlerOptions = {}) {
       createdAt: new Date(),
     };
 
-    setMessages([...messages, userMessage, assistantMessage]);
-    setTextInput("");
-    setReplyTo(null); // Clear replyTo after sending
-    setIsLoading(true);
-    setError(null);
+    // Append user message & assistant loading placeholder instantly
+    setMessages((prev) => [...prev, optimisticUserMessage, assistantMessage]);
 
-    let activeConversationId = currentConversationId;
-    if (!activeConversationId) {
-      const titleSeed =
-        content ||
-        uploadedFiles[0]?.filename ||
-        (attachmentUrl ? "Image conversation" : "New conversation");
-      const title =
-        titleSeed.length > 50 ? titleSeed.substring(0, 50) + "..." : titleSeed;
-      activeConversationId = await createConversation(title);
-      if (!activeConversationId) {
-        setError("Failed to create conversation");
-        setIsLoading(false);
-        setMessages(messages);
-        return;
+    try {
+      // 2. Perform background uploading
+      let attachmentUrl = null;
+      if (imageData) {
+        const imageAttachment = await uploadAttachment({
+          file: imageData,
+          mimeType: "image/jpeg",
+        });
+        attachmentUrl = imageAttachment?.url || null;
       }
-      setCurrentConversationId(activeConversationId);
-      window.dispatchEvent(new CustomEvent("conversation-updated"));
-      setTimeout(() => {
-        window.dispatchEvent(
-          new CustomEvent("title-generating", {
-            detail: { id: activeConversationId },
-          }),
-        );
-      }, 100);
-    }
 
-    await streamAssistantResponse(
-      updatedMessages,
-      activeConversationId,
-      assistantMessageId,
-      activeConversationId,
-    );
+      const uploadedFiles = (
+        await Promise.all(
+          files.map((file) =>
+            uploadAttachment({
+              file: file.dataUrl,
+              filename: file.filename,
+              mimeType: file.mimeType,
+              size: file.size,
+              extractedText: file.extractedText,
+            }),
+          ),
+        )
+      ).filter(Boolean) as MessageAttachment[];
+
+      // 3. Update the user message in history with finalized URLs
+      const finalUserMessage: Message = {
+        ...optimisticUserMessage,
+        ...(attachmentUrl ? { image: attachmentUrl } : {}),
+        ...(uploadedFiles.length ? { files: uploadedFiles } : {}),
+      };
+
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === userMessageId ? finalUserMessage : msg))
+      );
+
+      const updatedMessages = [...messages, finalUserMessage];
+
+      let activeConversationId = currentConversationId;
+      // Upgrade guard: If we have an active ephemeral ID but Incognito mode has been turned off,
+      // treat it as a new standard chat session to prevent BSON/ObjectId errors and save the conversation to MongoDB!
+      if (
+        !activeConversationId ||
+        (activeConversationId.startsWith("ephemeral_") && settings?.persistConversations !== false)
+      ) {
+        if (settings?.persistConversations === false) {
+          activeConversationId = `ephemeral_${Date.now()}`;
+        } else {
+          const titleSeed =
+            content ||
+            uploadedFiles[0]?.filename ||
+            (attachmentUrl ? "Image conversation" : "New conversation");
+          const title =
+            titleSeed.length > 50 ? titleSeed.substring(0, 50) + "..." : titleSeed;
+          activeConversationId = await createConversation(title);
+          if (!activeConversationId) {
+            setError("Failed to create conversation");
+            setIsLoading(false);
+            setMessages(messages);
+            return;
+          }
+        }
+        setCurrentConversationId(activeConversationId);
+        if (settings?.persistConversations !== false) {
+          window.dispatchEvent(new CustomEvent("conversation-updated"));
+          setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent("title-generating", {
+                detail: { id: activeConversationId },
+              }),
+            );
+          }, 100);
+        }
+      }
+
+      // 4. Stream response
+      await streamAssistantResponse(
+        updatedMessages,
+        activeConversationId,
+        assistantMessageId,
+        activeConversationId,
+      );
+    } catch (err: any) {
+      console.error("Upload/Processing failed:", err);
+      setError("Failed to upload attachments. Please try again.");
+      setIsLoading(false);
+      setMessages(messages); // Rollback
+    }
   }, [
     isLoading,
     messages,
@@ -681,7 +740,7 @@ export function useChatHandler(options: UseChatHandlerOptions = {}) {
     files?: Array<
       Pick<
         MessageAttachment,
-        "filename" | "mimeType" | "size" | "extractedText"
+        "filename" | "mimeType" | "size" | "extractedText" | "kind"
       > & {
         dataUrl: string;
       }

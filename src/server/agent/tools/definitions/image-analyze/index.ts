@@ -108,10 +108,18 @@ async function visionToolRunner(
       await connectDB();
       const attachment = await Attachment.findById(attachmentId).lean();
       if (attachment && attachment.path) {
-        onStatusUpdate?.({ message: "Reading attachment from disk..." });
-        const rawBuffer = await fs.readFile(attachment.path);
-        const b64 = rawBuffer.toString("base64");
-        imageToAnalyze = `data:${attachment.mimeType || "image/png"};base64,${b64}`;
+        if (attachment.path.startsWith("http://") || attachment.path.startsWith("https://")) {
+          onStatusUpdate?.({ message: "Fetching remote attachment..." });
+          const response = await fetch(attachment.path);
+          if (!response.ok) throw new Error(`Failed to fetch attachment from cloud: ${response.statusText}`);
+          const buffer = Buffer.from(await response.arrayBuffer());
+          imageToAnalyze = `data:${attachment.mimeType || "image/png"};base64,${buffer.toString("base64")}`;
+        } else {
+          onStatusUpdate?.({ message: "Reading attachment from disk..." });
+          const rawBuffer = await fs.readFile(attachment.path);
+          const b64 = rawBuffer.toString("base64");
+          imageToAnalyze = `data:${attachment.mimeType || "image/png"};base64,${b64}`;
+        }
       }
     } else if (
       args.imageUrlOrId.startsWith("http://") ||

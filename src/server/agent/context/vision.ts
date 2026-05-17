@@ -40,10 +40,7 @@ export async function preprocessImages(
     const parts: ProviderContentPart[] = [];
 
     for (const part of message.content) {
-      if (
-        isImagePart(part) &&
-        part.image_url.url.startsWith(API_ENDPOINTS.ATTACHMENTS.BASE + "/")
-      ) {
+      if (isImagePart(part)) {
         parts.push(buildImagePlaceholder(part.image_url.url));
       } else {
         parts.push(part);

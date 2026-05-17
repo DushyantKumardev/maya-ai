@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/utils";
 import { API_ENDPOINTS } from "@/lib/constants/api";
 import { useChatHandler } from "@/features/chat/hooks/use-chat-handler";
-
+import { getCachedConversationTitle } from "@/features/sidebar/components/ConversationList";
 
 export function Header() {
   const { settings, updateMemory } = useSettings();
@@ -45,8 +45,19 @@ export function Header() {
         lastFetchedId.current = conversationId;
         return;
       }
+
+      // Try to load instantly from Sidebar cache to avoid a network request!
+      const cachedTitle = getCachedConversationTitle(conversationId);
+      if (cachedTitle) {
+        setChatTitle(cachedTitle);
+        lastFetchedId.current = conversationId;
+        return;
+      }
+
       try {
-        const res = await fetch(API_ENDPOINTS.CONVERSATIONS.BY_ID(conversationId));
+        const res = await fetch(
+          API_ENDPOINTS.CONVERSATIONS.BY_ID(conversationId),
+        );
         if (!res.ok || cancelled) return;
 
         const data = await res.json();
@@ -79,6 +90,14 @@ export function Header() {
 
       if (conversationId.startsWith("ephemeral_")) {
         setChatTitle("New Chat (Incognito)");
+        lastFetchedId.current = conversationId;
+        return;
+      }
+
+      // Try to load instantly from Sidebar cache to avoid a network request!
+      const cachedTitle = getCachedConversationTitle(conversationId);
+      if (cachedTitle) {
+        setChatTitle(cachedTitle);
         lastFetchedId.current = conversationId;
         return;
       }
@@ -124,8 +143,8 @@ export function Header() {
     <header className="sticky top-0 z-30 flex h-14 w-full shrink-0 items-center justify-between border-b border-border/50 bg-background/80 px-4 backdrop-blur-md">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <SidebarTrigger className="-ml-1 h-9 w-9 rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" />
-        <div className="flex items-baseline gap-2 overflow-hidden">
-          <span className="truncate text-sm font-semibold tracking-tight text-foreground/90 max-w-1/2">
+        <div className="flex w-full items-baseline gap-2 overflow-hidden">
+          <span className="max-w-[60%] truncate text-sm font-semibold tracking-tight text-foreground/90">
             {conversationId ? chatTitle || APP_NAME : APP_NAME}
           </span>
         </div>
@@ -138,29 +157,38 @@ export function Header() {
 
         <div className="flex items-center gap-1">
           <div className="h-4 w-px bg-border/50 mx-1 md:hidden" />
-          
+
           <Button
             variant="ghost"
             size="icon"
             onClick={() => {
               const newValue = !settings.persistConversations;
               void updateMemory({ persistConversations: newValue });
-              
-              // If activating Incognito Mode (persistConversations: false) while in an active chat
-              if (newValue === false && conversationId) {
+
+              // Reset chat when toggling Incognito Mode in either direction to prevent state mixing/corruption
+              if (conversationId) {
                 resetChat();
                 router.push("/c");
               }
             }}
             className={cn(
               "h-9 w-9 rounded-full transition-all",
-              !settings.persistConversations 
-                ? "bg-primary/10 text-primary hover:bg-primary/20" 
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              !settings.persistConversations
+                ? "bg-primary/10 text-primary hover:bg-primary/20"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
-            title={!settings.persistConversations ? "Incognito Mode Active" : "Incognito Mode Disabled"}
+            title={
+              !settings.persistConversations
+                ? "Incognito Mode Active"
+                : "Incognito Mode Disabled"
+            }
           >
-            <Ghost className={cn("h-4 w-4", !settings.persistConversations && "fill-current")} />
+            <Ghost
+              className={cn(
+                "h-4 w-4",
+                !settings.persistConversations && "fill-current",
+              )}
+            />
           </Button>
 
           <ThemeToggle />

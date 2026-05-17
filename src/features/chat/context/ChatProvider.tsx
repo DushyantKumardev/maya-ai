@@ -36,12 +36,13 @@ export function ChatProvider({ conversationId, children }: ChatProviderProps) {
     setReplyTo,
   } = useChatHandler({ conversationId });
 
-  // Update browser URL once the server creates a conversation id (new chat flow only)
+  // Update browser URL once the server creates a conversation id (new chat flow only or ephemeral upgrade)
   useEffect(() => {
     if (
       currentConversationId &&
       (window.location.pathname === "/c" ||
-        window.location.pathname === "/c/new")
+        window.location.pathname === "/c/new" ||
+        window.location.pathname.startsWith("/c/ephemeral_"))
     ) {
       window.history.replaceState(null, "", `/c/${currentConversationId}`);
       window.dispatchEvent(new CustomEvent("url-changed"));

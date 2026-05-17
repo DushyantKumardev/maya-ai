@@ -87,6 +87,17 @@ Now that you're set up, explore the following:
 
 ---
 
+## ☁️ Vercel & MongoDB Atlas Deployment
+
+Maya AI is fully optimized to run on serverless cloud platforms like **Vercel** combined with cloud databases like **MongoDB Atlas**:
+
+1. **Deploy to Vercel:** Connect your GitHub repository to Vercel for instant continuous integration.
+2. **Enable Cloud Mode:** Set the environment variable `NEXT_PUBLIC_APP_MODE=cloud` in Vercel's settings to switch from local disk storage to high-performance cloud storage drivers.
+3. **Configure Cloudinary:** Provide your Cloudinary credentials (`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`) in Vercel. Maya AI will automatically route all user attachments, generated AI images, and LLM vision queries through secure Cloudinary CDN URLs.
+4. **Database Connectivity:** Update `MONGODB_URI` to point to a MongoDB Atlas cluster, making your history and encryption keys fully cloud-synchronized.
+
+---
+
 > [!NOTE]
 > Maya AI is built on a **local-first** philosophy, prioritizing privacy and performance for private development. While optimized for local LLMs via Ollama, it offers seamless integration with industry-leading providers including Gemini, OpenAI, Anthropic, OpenRouter and Ollama Cloud.
 

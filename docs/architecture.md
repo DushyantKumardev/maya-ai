@@ -10,23 +10,35 @@ Maya operates as a bridge between the user and multiple AI models, enhanced by p
 
 ```mermaid
 graph TD
-    User((User)) <--> NextJS[Next.js App Router]
-    NextJS <--> Orchestrator[Agent Orchestrator]
+    User((User)) <--> NextJS[Next.js Frontend]
     
-    subgraph "The Agent (src/server/agent)"
-        Orchestrator --> Provider[Provider Layer]
-        Orchestrator --> Context[Context & History]
-        Orchestrator --> Prompt[Prompt Assembler]
-        Orchestrator --> Tools[Tool System]
+    subgraph Frontend ["Frontend Architecture (App Router & Hooks)"]
+        NextJS <--> useChat["useChatHandler Hook"]
+        useChat <--> CacheLayer["Local Cache Layer"]
+        CacheLayer <--> |"30s TTL Cache"| Sidebar["ConversationList (Sidebar)"]
+        CacheLayer <--> |"Instant Title Lookup"| Header["Header Title Resolver"]
+    end
+
+    subgraph LogicFlow ["Conversation Routing Logic"]
+        useChat --> |"Incognito / Ghost Mode Active"| LocalRAM["Local RAM (Private Client State)"]
+        useChat --> |"Standard Mode Active"| API["Next.js API Routes"]
+    end
+
+    subgraph Backend ["The Agent Backend (src/server/agent)"]
+        API <--> Orchestrator["Agent Orchestrator"]
+        Orchestrator --> Provider["Provider Layer"]
+        Orchestrator --> Context["Context & History"]
+        Orchestrator --> Prompt["Prompt Assembler"]
+        Orchestrator --> Tools["Tool System"]
     end
     
-    subgraph "Data Layer"
-        Context <--> Memory[Memory & Summary]
-        Memory <--> MongoDB[(MongoDB)]
-        NextJS <--> MongoDB
+    subgraph Data ["Data Layer (Standard Mode Only)"]
+        API <--> MongoDB[("MongoDB Database")]
+        Context <--> Memory["Memory & Summary"]
+        Memory <--> MongoDB
     end
     
-    Provider <--> LLM[Ollama / Gemini / OpenAI]
+    Provider <--> LLM["Ollama / Gemini / OpenAI"]
 ```
 
 ---

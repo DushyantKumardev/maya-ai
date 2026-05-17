@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import connectDB from "@/server/db/mongo";
 import Attachment from "@/server/db/models/attachment-model";
 import { auth } from "@/features/auth/config/auth";
-import fs from "fs/promises";
 import path from "path";
 import { API_ENDPOINTS } from "@/lib/constants/api";
+import { saveFile } from "@/server/utils/storage";
 import {
   inferAttachmentKind,
   sanitizeAttachmentName,
@@ -55,37 +55,34 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. Prepare file system path
-    const buffer = Buffer.from(base64Data, "base64");
+    // 2. Save the file dynamically using the appropriate storage driver
     const safeFilename = sanitizeAttachmentName(filename);
     const extension = path.extname(safeFilename);
     const generatedExtension =
       extension || `.${mimeType.split("/")[1] || "bin"}`;
-    const storedFileName = `${Date.now()}-${safeFilename.replace(/\.[^.]+$/, "")}${generatedExtension}`;
-    const uploadDir = path.join(process.cwd(), "storage", "uploads");
-    const filepath = path.join(uploadDir, storedFileName);
+    const storedFileName = `${safeFilename.replace(/\.[^.]+$/, "")}${generatedExtension}`;
     const kind = inferAttachmentKind(mimeType, safeFilename);
     const finalExtractedText = truncateExtractedText(extractedText);
 
-    // 3. Ensure upload directory exists.
-    await fs.mkdir(uploadDir, { recursive: true });
+    const uploadResult = await saveFile(base64Data, storedFileName, mimeType, "uploads");
 
-    // 4. Save the file.
-    await fs.writeFile(filepath, buffer);
-
-    // 5. Create attachment record.
+    // 3. Create attachment record.
     const attachment = await Attachment.create({
       userId: session.user.id,
       kind,
       mimeType,
       filename: safeFilename || storedFileName,
-      size: typeof size === "number" ? size : buffer.length,
-      path: filepath,
+      size: typeof size === "number" ? size : Buffer.from(base64Data, "base64").length,
+      path: uploadResult.path,
       extractedText: finalExtractedText || undefined,
       previewText: finalExtractedText
         ? buildPreviewText(finalExtractedText)
         : undefined,
     });
+
+    const attachmentUrl = uploadResult.isCloud
+      ? uploadResult.url
+      : API_ENDPOINTS.ATTACHMENTS.BY_ID(attachment._id.toString());
 
     return NextResponse.json(
       {
@@ -97,7 +94,7 @@ export async function POST(req: Request) {
           mimeType: attachment.mimeType,
           filename: attachment.filename,
           size: attachment.size,
-          url: API_ENDPOINTS.ATTACHMENTS.BY_ID(attachment._id.toString()),
+          url: attachmentUrl,
         },
       },
       { status: 200 },
