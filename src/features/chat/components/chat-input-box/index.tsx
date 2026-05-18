@@ -29,6 +29,7 @@ import {
 } from "@/lib/attachments";
 import ModelSelector from "../ModelSelector";
 import { ReasoningEffort } from "@/features/chat/types";
+import { useChatContext } from "@/features/chat/context/ChatContext";
 
 const REASONING_OPTIONS: {
   value: ReasoningEffort;
@@ -96,6 +97,50 @@ const ChatInputBox = React.forwardRef<HTMLTextAreaElement, ChatInputBoxProps>(
     const [textAttachments, setTextAttachments] = React.useState<UploadableAttachment[]>([]);
     const pathname = usePathname();
     const isChatPageWithId = pathname.includes("/c/");
+
+    const { messages } = useChatContext();
+
+    const hasActiveQuestionnaire = React.useMemo(() => {
+      // Find all questionnaires in the chat history
+      const allQuestionnaires = messages.flatMap((m) => {
+        const parts = m.parts ?? [];
+        return parts.flatMap((p) => {
+          if (p.type !== "ask_user") return [];
+          
+          let title = (p as any).attributes?.title;
+          if (!title) {
+            const titleMatch = p.content.match(/<ask_user\s+title=["'](.*?)["']\s*>/i);
+            title = titleMatch?.[1];
+          }
+          if (!title) {
+            try {
+              const cleaned = p.content.trim().replace(/<\/?ask_user>/g, "").trim();
+              const parsed = JSON.parse(cleaned);
+              title = parsed?.raw?.title ?? parsed?.title;
+            } catch (e) {}
+          }
+          
+          if (!title) return [];
+
+          const isQSubmitted = messages
+            .slice(messages.indexOf(m) + 1)
+            .some(
+              (um) =>
+                um.role === "user" &&
+                um.content.startsWith(`Here are my answers to "${title}":`)
+            );
+
+          return [{
+            messageId: m.id,
+            title,
+            isSubmitted: isQSubmitted
+          }];
+        });
+      });
+
+      // Is there any questionnaire that is NOT yet submitted?
+      return allQuestionnaires.some((q) => !q.isSubmitted);
+    }, [messages]);
 
     React.useImperativeHandle(ref, () => internalTextareaRef.current!, []);
 
@@ -239,11 +284,15 @@ const ChatInputBox = React.forwardRef<HTMLTextAreaElement, ChatInputBoxProps>(
     return (
       <div
         className={cn(
-          "relative flex flex-col w-full mx-auto rounded-[28px]",
-          "bg-muted/40 backdrop-blur-xl border border-border/50 shadow-2xl",
-          "transition-all duration-300",
-          "focus-within:border-primary/30 focus-within:ring-4 focus-within:ring-primary/5 focus-within:bg-background/80",
-          "dark:bg-muted/30 dark:focus-within:bg-background/40",
+          "relative flex flex-col w-full mx-auto rounded-3xl overflow-hidden",
+          // Theme-based adaptive card and border tokens
+          "bg-card/70 border border-border/60 shadow-lg",
+          "backdrop-blur-xl transition-all duration-300",
+          // Focus state based on your theme's ring token
+          "focus-within:border-ring/40 focus-within:shadow-xl",
+          // Elevated shadows utilizing standard dark mode overlay highlights
+          "dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03),0_20px_40px_-15px_rgba(0,0,0,0.5)]",
+          "dark:focus-within:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_25px_50px_-12px_rgba(0,0,0,0.7)]",
         )}
       >
         <input
@@ -294,7 +343,13 @@ const ChatInputBox = React.forwardRef<HTMLTextAreaElement, ChatInputBoxProps>(
           onChange={handleInputChange}
           onKeyDown={onKeyDown}
           onPaste={handlePaste}
-          placeholder={isChatPageWithId ? `Message ${APP_NAME}` : "Message Maya"}
+          placeholder={
+            hasActiveQuestionnaire
+              ? "Or reply directly..."
+              : isChatPageWithId
+              ? `Message ${APP_NAME}`
+              : "Message Maya"
+          }
           className={cn(
             "w-full min-h-11 max-h-50 resize-none",
             "px-5 pt-4 pb-2",
@@ -316,7 +371,7 @@ const ChatInputBox = React.forwardRef<HTMLTextAreaElement, ChatInputBoxProps>(
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 rounded-full hover:bg-background/50 text-foreground/60 hover:text-foreground transition-all duration-200"
+                      className="h-8 w-8 rounded-full hover:bg-secondary/70 text-foreground/60 hover:text-primary transition-all duration-200"
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
@@ -354,10 +409,10 @@ const ChatInputBox = React.forwardRef<HTMLTextAreaElement, ChatInputBoxProps>(
                       <div className="flex items-center gap-2">
                         <opt.icon className={cn("h-4 w-4", opt.color)} />
                         <span
-                          className={cn(
-                            "text-sm font-medium",
-                            reasoningEffort === opt.value ? "text-foreground" : "text-muted-foreground",
-                          )}
+                           className={cn(
+                             "text-sm font-medium",
+                             reasoningEffort === opt.value ? "text-foreground" : "text-muted-foreground",
+                           )}
                         >
                           {opt.label}
                         </span>
@@ -393,7 +448,7 @@ const ChatInputBox = React.forwardRef<HTMLTextAreaElement, ChatInputBoxProps>(
                   className="ml-0.5 p-0.5 rounded-full hover:bg-muted transition-colors"
                   aria-label="Disable thinking"
                 >
-                  <X className="h-3 w-3 text-muted-foreground" />
+                  <X className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
               </div>
             )}
@@ -408,7 +463,7 @@ const ChatInputBox = React.forwardRef<HTMLTextAreaElement, ChatInputBoxProps>(
                   onClick={toggleListening}
                   className={cn(
                     "flex h-8 w-8 items-center justify-center rounded-full",
-                    "text-foreground/60 transition-all hover:bg-background/50 hover:text-foreground",
+                    "text-foreground/60 transition-all hover:bg-secondary/70 hover:text-primary",
                     "focus-visible:outline-none",
                     isListening && "text-primary bg-primary/10",
                     isHearing && "scale-110",
@@ -438,7 +493,9 @@ const ChatInputBox = React.forwardRef<HTMLTextAreaElement, ChatInputBoxProps>(
                     "h-8 w-8 rounded-full transition-all duration-300",
                     isLoading
                       ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      : "bg-foreground text-background hover:bg-foreground/90 dark:bg-foreground dark:text-background",
+                      : canSubmit
+                      ? "bg-primary text-primary-foreground hover:opacity-90 shadow-md shadow-primary/5 active:scale-95"
+                      : "bg-secondary text-secondary-foreground opacity-30 cursor-not-allowed",
                   )}
                 >
                   {isLoading ? (

@@ -3,35 +3,18 @@
 import React, { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import { usePlayback } from "../../context/PlaybackContext";
-import { 
-  Play, 
-  Pause, 
-  X, 
-  SkipBack,
-  SkipForward,
-  Music2, 
-  Volume2,
-  VolumeX,
-} from "lucide-react";
+import { Play, Pause, X, Music2, Volume2, VolumeX } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 
 export function GlobalPlayer() {
-  const { 
-    activeId, 
-    type, 
-    metadata, 
-    isPlaying, 
-    setPlaying, 
-    stop 
-  } = usePlayback();
+  const { activeId, type, metadata, isPlaying, setPlaying, stop } =
+    usePlayback();
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(0.8);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [showVolume, setShowVolume] = useState(false);
 
   // Handle Audio Playback
   useEffect(() => {
@@ -44,12 +27,12 @@ export function GlobalPlayer() {
     }
   }, [isPlaying, type, activeId]);
 
-  // Sync Volume
+  // Sync Volume/Mute
   useEffect(() => {
     if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume;
+      audioRef.current.volume = isMuted ? 0 : 0.8;
     }
-  }, [volume, isMuted]);
+  }, [isMuted]);
 
   const handleTimeUpdate = () => {
     if (audioRef.current) {
@@ -63,154 +46,151 @@ export function GlobalPlayer() {
     }
   };
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = parseFloat(e.target.value);
-    setCurrentTime(time);
-    if (audioRef.current) {
-      audioRef.current.currentTime = time;
-    }
-  };
-
-  const formatTime = (time: number) => {
-    const mins = Math.floor(time / 60);
-    const secs = Math.floor(time % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
   if (!activeId) return null;
+
+  // Circle progress calculation
+  const radius = 14;
+  const circumference = 2 * Math.PI * radius; // 87.96
+  const progressPercent = currentTime / (duration || 1);
+  const strokeDashoffset = circumference - progressPercent * circumference;
 
   return (
     <>
+      <style>{`
+        @keyframes eq-bar-1 { 0%, 100% { height: 4px; } 50% { height: 16px; } }
+        @keyframes eq-bar-2 { 0%, 100% { height: 6px; } 50% { height: 12px; } }
+        @keyframes eq-bar-3 { 0%, 100% { height: 3px; } 50% { height: 18px; } }
+        .eq-bar-active-1 { animation: eq-bar-1 0.8s ease-in-out infinite; }
+        .eq-bar-active-2 { animation: eq-bar-2 0.6s ease-in-out infinite; }
+        .eq-bar-active-3 { animation: eq-bar-3 0.7s ease-in-out infinite; }
+      `}</style>
+
       <AnimatePresence mode="wait">
         <motion.div
-          key="minimal-bar"
-          initial={{ y: -50, opacity: 0, scale: 0.95 }}
-          animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: -50, opacity: 0, scale: 0.95 }}
-          className="sticky top-0 z-50 mx-auto w-fit pt-4 pb-2"
+          key="luxury-sticky-badge"
+          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+          className="sticky top-0 z-50 mx-auto w-fit pt-3 pb-1 select-none animate-in fade-in slide-in-from-top-2 duration-300"
         >
-          <div className="relative overflow-hidden flex flex-col items-center rounded-3xl border border-white/20 bg-background/60 shadow-2xl backdrop-blur-xl">
-            {/* Main Controller Row */}
-            <div className="flex items-center gap-3 p-1.5 pr-4">
-              {/* Playback Controls */}
-              <div className="flex items-center gap-0.5 px-2">
-                <Button variant="ghost" size="icon" className="size-8 rounded-full text-foreground/70 hover:bg-white/10">
-                  <SkipBack className="size-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="size-9 rounded-full bg-primary/10 text-primary hover:bg-primary/20"
-                  onClick={() => setPlaying(!isPlaying)}
-                >
-                  {isPlaying ? <Pause className="size-5 fill-current" /> : <Play className="size-5 fill-current ml-0.5" />}
-                </Button>
-                <Button variant="ghost" size="icon" className="size-8 rounded-full text-foreground/70 hover:bg-white/10">
-                  <SkipForward className="size-4" />
-                </Button>
-              </div>
+          <div className="relative flex items-center gap-3 p-2 rounded-2xl border border-white/20 bg-background/80 shadow-[0_8px_32px_rgba(0,0,0,0.15)] shadow-primary/5 backdrop-blur-md transition-all duration-300 hover:border-primary/30">
+            {/* Play/Pause Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-300 flex items-center justify-center shrink-0 active:scale-95"
+              onClick={() => setPlaying(!isPlaying)}
+            >
+              {isPlaying ? (
+                <Pause className="size-4 fill-current" />
+              ) : (
+                <Play className="size-4 fill-current ml-0.5" />
+              )}
+            </Button>
 
-              {/* Info Pill */}
-              <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 py-1 pl-1 pr-4">
-                <div className="relative size-8 shrink-0 overflow-hidden rounded-full border border-white/20 shadow-lg">
-                  {metadata?.coverArt ? (
-                    <Image src={metadata.coverArt} alt="" width={32} height={32} className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-primary/10 text-primary">
-                      <Music2 className="size-4" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col">
-                  <span className="max-w-30 truncate text-[11px] font-bold tracking-tight text-foreground/90 leading-tight">
-                    {metadata?.title || "Unknown Track"}
-                  </span>
-                  <span className="text-[9px] font-medium text-muted-foreground/60 uppercase tracking-wider">
-                    {metadata?.artist || metadata?.label || "Maya AI"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Utilities */}
-              <div className="flex items-center gap-1">
-                {/* Volume Control */}
-                <div 
-                  className="relative flex items-center"
-                  onMouseEnter={() => setShowVolume(true)}
-                  onMouseLeave={() => setShowVolume(false)}
-                >
-                  <AnimatePresence>
-                    {showVolume && (
-                      <motion.div
-                        initial={{ width: 0, opacity: 0 }}
-                        animate={{ width: 80, opacity: 1 }}
-                        exit={{ width: 0, opacity: 0 }}
-                        className="overflow-hidden flex items-center"
-                      >
-                        <input 
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.01"
-                          value={isMuted ? 0 : volume}
-                          onChange={(e) => setVolume(parseFloat(e.target.value))}
-                          className="w-20 h-1 mx-2 bg-white/10 rounded-full appearance-none cursor-pointer accent-primary"
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="size-8 rounded-full text-muted-foreground/60 hover:bg-white/5"
-                    onClick={() => setIsMuted(!isMuted)}
-                  >
-                    {isMuted || volume === 0 ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-                  </Button>
-                </div>
-
-                <div className="h-4 w-px bg-white/10 mx-1" />
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="size-8 rounded-full text-muted-foreground/40 hover:bg-destructive/10 hover:text-destructive"
-                  onClick={stop}
-                >
-                  <X className="size-4" />
-                </Button>
+            {/* Circular Progress & Art Badge */}
+            <div className="relative size-9 flex items-center justify-center shrink-0">
+              <svg
+                className="size-9 absolute inset-0 -rotate-90"
+                viewBox="0 0 36 36"
+              >
+                {/* Background Ring */}
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="14"
+                  fill="transparent"
+                  stroke="rgba(255,255,255,0.06)"
+                  strokeWidth="2"
+                />
+                {/* Active Progress Ring */}
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="14"
+                  fill="transparent"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  strokeLinecap="round"
+                  className="text-primary transition-all duration-100 ease-out"
+                />
+              </svg>
+              {/* Art thumbnail inside progress ring */}
+              <div className="absolute inset-1 rounded-full overflow-hidden border border-white/10 bg-muted shadow-inner">
+                {metadata?.coverArt ? (
+                  <Image
+                    src={metadata.coverArt}
+                    alt=""
+                    width={28}
+                    height={28}
+                    className={`h-full w-full object-cover transition-transform duration-1000 ${isPlaying ? "animate-[spin_8s_linear_infinite]" : ""}`}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-primary/10 text-primary">
+                    <Music2 className="size-3.5" />
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Seeker / Progress Row */}
-            <div className="group relative w-full px-6 pb-2 -mt-1 flex flex-col gap-1">
-              <div className="flex items-center justify-between text-[8px] font-mono font-bold text-muted-foreground/40 tabular-nums">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
+            {/* Title, Artist, & Equalizer Stack */}
+            <div className="flex items-center gap-3 pr-1">
+              <div className="flex flex-col min-w-24 max-w-28 select-none">
+                <span className="truncate text-[10px] font-bold tracking-tight text-foreground/90 leading-tight">
+                  {metadata?.title || "Unknown Track"}
+                </span>
+                <span className="truncate text-[8px] font-medium text-muted-foreground/60 uppercase tracking-wider leading-none mt-0.5">
+                  {metadata?.artist || metadata?.label || "Maya AI"}
+                </span>
               </div>
-              <div className="relative h-1 w-full rounded-full bg-white/10 group-hover:h-1.5 transition-all cursor-pointer">
-                <div 
-                  className="absolute inset-y-0 left-0 bg-primary/60 rounded-full"
-                  style={{ width: `${(currentTime / duration) * 100}%` }}
+
+              {/* Animated Equalizer Waveform */}
+              <div className="flex items-end gap-0.5 h-4.5 w-4.5 shrink-0 px-0.5 pb-0.5">
+                <div
+                  className={`w-[2.5px] bg-primary/80 rounded-full transition-all duration-300 ${isPlaying ? "eq-bar-active-1" : "h-0.75"}`}
                 />
-                <input 
-                  type="range"
-                  min="0"
-                  max={duration || 100}
-                  step="0.1"
-                  value={currentTime}
-                  onChange={handleSeek}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                <div
+                  className={`w-[2.5px] bg-primary/80 rounded-full transition-all duration-300 ${isPlaying ? "eq-bar-active-2" : "h-0.75"}`}
+                />
+                <div
+                  className={`w-[2.5px] bg-primary/80 rounded-full transition-all duration-300 ${isPlaying ? "eq-bar-active-3" : "h-0.75"}`}
                 />
               </div>
+            </div>
+
+            {/* Mute and Close Controls */}
+            <div className="flex items-center gap-0.5 border-l border-white/10 pl-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 rounded-full text-muted-foreground/60 hover:bg-white/5 active:scale-95"
+                onClick={() => setIsMuted(!isMuted)}
+              >
+                {isMuted ? (
+                  <VolumeX className="size-3.5" />
+                ) : (
+                  <Volume2 className="size-3.5" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 rounded-full text-muted-foreground/40 hover:bg-destructive/10 hover:text-destructive active:scale-95"
+                onClick={stop}
+              >
+                <X className="size-3.5" />
+              </Button>
             </div>
           </div>
         </motion.div>
       </AnimatePresence>
 
       {/* Hidden Audio Element */}
-      <audio 
-        ref={audioRef} 
-        src={activeId} 
+      <audio
+        ref={audioRef}
+        src={activeId}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={stop}

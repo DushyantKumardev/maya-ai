@@ -4,6 +4,18 @@ All notable changes to **Maya AI** will be documented in this file.
 
 ---
 
+## [1.1.1] - 2026-05-18
+
+### Added & Improved
+- **Virtual Keyboard Avoidance**: Built a custom virtual keyboard handler to prevent active textareas and message inputs from hiding behind the software keyboard on mobile.
+- **Audio Autoplay Lock**: Restricted music widget automatic playback to target only the freshly generated tool calls within the active streaming message, completely blocking historical song widgets from autoplaying when a chat is loaded from history.
+- **Playback Session Autostop**: Linked the global playback session with the active conversation. Switching chat rooms or returning home automatically halts current music, ensuring background tracks never bleed between conversations.
+- **Luxury Header Music Player**: Re-designed the global music player into a futuristic, integrated sticky card placed directly below the app header. Features an SVG circular progress ring wrapping the rotating cover art, a custom-animated bouncing equalizing wave visualizer, and single-tap mute/dismiss controls.
+- **Flat System Info Panel**: Overhauled the Settings `System` tab into a flat, native-looking read-only specs layout. Displays system details (Next.js, MongoDB, NextAuth, Multi-LLM), grouped resource actions, and an interactive developer profile badge loaded with a real-time GitHub avatar dynamically.
+- **Collapsible Questionnaires**: Implemented accordion collapsing for completed assistant question lists to maintain a clean chat canvas, including full inline rendering and custom skip actions.
+
+---
+
 ## [1.1.0] - 2026-05-17
 
 ### Added
@@ -12,7 +24,7 @@ All notable changes to **Maya AI** will be documented in this file.
 - **Mode Toggle Safeguards**: Configured automatic session resets when switching privacy modes to keep chats separate, and enabled auto-upgrades if a local chat is switched to standard mode.
 
 ### Changed & Improved
-- **Sidebar & Header Caching**: Added an in-memory title cache to eliminate redundant network reads when toggling the sidebar or switching conversations.
+- **Sidebar & Header Caching**: Added an in-memory title cache to eliminate redundant network reads when switching conversations or toggling the sidebar.
 - **Strict Mode Concurrency Guard**: Added a loading reference tracker to discard duplicate concurrent database fetches caused by React Strict Mode in development.
 - **Optimistic UI Rendering**: Updated the submission logic to clear inputs instantly and show image preview thumbnails before upload completion.
 - **Serverless and Vercel Compatibility**: Intercepted cloud assets and routed them via API redirects, eliminating direct disk-write dependencies for static production builds.

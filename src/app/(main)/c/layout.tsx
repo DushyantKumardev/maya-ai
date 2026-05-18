@@ -8,6 +8,7 @@ import { Header } from "@/components/Header";
 import { Artifact } from "@/features/chat/components/message/Artifact";
 import { cn } from "@/lib/utils/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePlayback } from "@/features/chat/context/PlaybackContext";
 import {
   Sheet,
   SheetContent,
@@ -29,6 +30,7 @@ function ChatLayoutContent({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const conversationId = params?.id as string;
   const { messages, isStreaming } = useChatContext();
+  const { stop } = usePlayback();
   const [leftWidth, setLeftWidth] = useState(50); // percentage
   const [isArtifactOpen, setIsArtifactOpen] = useState(false);
   const [selectedArtifact, setSelectedArtifact] =
@@ -65,6 +67,11 @@ function ChatLayoutContent({ children }: { children: React.ReactNode }) {
     setIsArtifactOpen(false);
     setSelectedArtifact(null);
   }
+
+  // Stop music playback when switching between different chats
+  useEffect(() => {
+    stop();
+  }, [conversationId, stop]);
 
   // Auto-open artifact panel when a new artifact appears during streaming
   useEffect(() => {
@@ -189,6 +196,7 @@ function ChatLayoutContent({ children }: { children: React.ReactNode }) {
                 content={artifactData.content}
                 type={artifactData.type}
                 defaultTab={defaultTab}
+                isStreaming={isStreaming}
                 onClose={() => setIsArtifactOpen(false)}
               />
             ) : (
@@ -217,6 +225,7 @@ function ChatLayoutContent({ children }: { children: React.ReactNode }) {
                   content={artifactData.content}
                   type={artifactData.type}
                   defaultTab={defaultTab}
+                  isStreaming={isStreaming}
                   onClose={() => setIsArtifactOpen(false)}
                 />
               ) : (

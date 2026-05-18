@@ -172,10 +172,7 @@ export function SettingsModal() {
         return <PersonaModule {...commonProps} />;
       case "tools":
         return (
-          <ToolsModule
-            {...commonProps}
-            setDraftSettings={setDraftSettings}
-          />
+          <ToolsModule {...commonProps} setDraftSettings={setDraftSettings} />
         );
       case "memory":
         return <MemoryModule {...commonProps} />;
@@ -207,7 +204,9 @@ export function SettingsModal() {
         {/* Sidebar */}
         <div className="w-full sm:w-60 shrink-0 bg-sidebar border-b sm:border-b-0 sm:border-r border-border/40 flex flex-col overflow-hidden">
           <div className="hidden gap-2 items-center px-6 py-8 sm:flex">
-            <h2 className="text-xl font-semibold tracking-tight text-foreground">Settings</h2>
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">
+              Settings
+            </h2>
           </div>
 
           <div className="flex overflow-x-auto flex-row flex-1 gap-1 p-2 sm:flex-col sm:overflow-y-auto custom-scrollbar sm:p-4">
@@ -242,22 +241,25 @@ export function SettingsModal() {
             <X className="w-5 h-5" />
           </button>
 
-          <div 
+          <div
             key={activeSection}
             className="overflow-y-auto flex-1 p-4 sm:p-8 sm:pt-10 custom-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-300"
           >
             {renderContent()}
           </div>
 
-          <div className="flex sticky bottom-0 justify-end p-4 border-t backdrop-blur-sm sm:p-6 border-border/20 bg-background/80">
-            <Button
-              onClick={handleSave}
-              disabled={isSaving || !hasChanges}
-              className="px-8 py-2 w-full font-semibold rounded-full transition-all sm:w-auto"
-            >
-              {isSaving ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
+          {/* Save Button */}
+          {activeSection !== "system" && (
+            <div className="flex sticky bottom-0 justify-end p-4 border-t backdrop-blur-sm sm:p-6 border-border/20 bg-background/80">
+              <Button
+                onClick={handleSave}
+                disabled={isSaving || !hasChanges}
+                className="px-8 py-2 w-full font-semibold rounded-full transition-all sm:w-auto"
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

@@ -30,6 +30,7 @@ interface ArtifactProps {
   url?: string;
   id?: string;
   defaultTab?: "code" | "preview";
+  isStreaming?: boolean;
   onClose?: () => void;
 }
 
@@ -78,17 +79,23 @@ function getDownloadExtension(rawType: string): string {
   return map[rawType.toLowerCase()] ?? "txt";
 }
 
-export const Artifact = ({ title, content, type, defaultTab = "code", onClose }: ArtifactProps) => {
+export const Artifact = ({ title, content, type, defaultTab = "code", isStreaming = false, onClose }: ArtifactProps) => {
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>(defaultTab);
 
   const resolvedType = useMemo(() => resolveArtifactType(type), [type]);
   const runnable = useMemo(() => canRunArtifact(resolvedType), [resolvedType]);
 
-  const [prevContent, setPrevContent] = useState(content);
-  if (content !== prevContent) {
-    setPrevContent(content);
-    setActiveTab(defaultTab);
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    return resolvedType === "html" ? "preview" : defaultTab;
+  });
+
+  const [prevTitle, setPrevTitle] = useState(title);
+  const [prevResolvedType, setPrevResolvedType] = useState(resolvedType);
+
+  if (title !== prevTitle || resolvedType !== prevResolvedType) {
+    setPrevTitle(title);
+    setPrevResolvedType(resolvedType);
+    setActiveTab(resolvedType === "html" ? "preview" : defaultTab);
   }
 
   const handleCopy = () => {
@@ -178,7 +185,7 @@ export const Artifact = ({ title, content, type, defaultTab = "code", onClose }:
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-t-md transition-all capitalize relative",
                 activeTab === tab
-                  ? "text-primary bg-background/60 shadow-sm after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-px after:bg-background/60"
+                  ? "text-primary bg-background/60 shadow-sm after:absolute after:-bottom-px after:left-0 after:right-0 after:h-px after:bg-background/60"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
               )}
             >
@@ -197,7 +204,7 @@ export const Artifact = ({ title, content, type, defaultTab = "code", onClose }:
       <div className="flex-1 overflow-hidden min-h-0">
         {runnable && activeTab === "preview" ? (
           <div className="h-full w-full p-3">
-            <ArtifactCodeRunner code={content} language={resolvedType} />
+            <ArtifactCodeRunner code={content} language={resolvedType} isStreaming={isStreaming} />
           </div>
         ) : (
           <div className="h-full overflow-y-auto custom-scrollbar bg-card/30 animate-in fade-in slide-in-from-bottom-4 duration-500">

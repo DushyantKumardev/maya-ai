@@ -73,47 +73,50 @@
 }
 
 .dark {
-  /* Softer than pure #0d0d0d — less harsh, better depth perception */
   --background: #141414;
-  --foreground: #e8e6e1; /* warm white, easier on eyes than #ececec */
-  --card: #1e1e1c;
-  --card-foreground: #e8e6e1;
-  --popover: #232320;
-  --popover-foreground: #e8e6e1;
+  --foreground: #e7e5e4;
 
-  --primary: #e8e6e1;
+  --card: #1b1b1a;
+  --card-foreground: #e7e5e4;
+
+  --popover: #20201f;
+  --popover-foreground: #e7e5e4;
+
+  --primary: #f5f5f4;
   --primary-foreground: #141414;
 
-  /* Secondary and muted stepped more clearly apart */
-  --secondary: #252522;
-  --secondary-foreground: #c8c6c1;
-  --muted: #2a2a27;
-  --muted-foreground: #9ca3a0; /* was #737373 — WCAG AA fail fixed */
-  --accent: #2f2f2c;
-  --accent-foreground: #e8e6e1;
+  --secondary: #232322;
+  --secondary-foreground: #d6d3d1;
 
-  --destructive: #c0392b; /* slightly brighter than #b91c1c for dark bg */
-  --destructive-foreground: #fef2f2;
+  --muted: #262625;
+  --muted-foreground: #9b9b97;
 
-  /* Border more visible — was too close to background */
-  --border: #383835;
-  --input: #252522;
-  --ring: #6b6b68;
+  --accent: #30302e;
+  --accent-foreground: #f5f5f4;
 
-  /* Sidebar slightly darker than bg — creates real depth */
-  --sidebar: #111110;
-  --sidebar-foreground: #c8c6c1;
-  --sidebar-primary: #e8e6e1;
+  --destructive: #c24134;
+  --destructive-foreground: #fff5f5;
+
+  --border: #343432;
+  --input: #222221;
+  --ring: #72706c;
+
+  --sidebar: #10100f;
+  --sidebar-foreground: #d6d3d1;
+
+  --sidebar-primary: #f5f5f4;
   --sidebar-primary-foreground: #141414;
-  --sidebar-accent: #222220;
-  --sidebar-accent-foreground: #e8e6e1;
-  --sidebar-border: #2c2c29;
-  --sidebar-ring: #6b6b68;
 
-  --chart-1: #4f9cf9;
+  --sidebar-accent: #1d1d1c;
+  --sidebar-accent-foreground: #f5f5f4;
+
+  --sidebar-border: #292927;
+  --sidebar-ring: #72706c;
+
+  --chart-1: #60a5fa;
   --chart-2: #34d399;
-  --chart-3: #f59e0b;
-  --chart-4: #ef4444;
+  --chart-3: #fbbf24;
+  --chart-4: #f87171;
   --chart-5: #a78bfa;
 }
 

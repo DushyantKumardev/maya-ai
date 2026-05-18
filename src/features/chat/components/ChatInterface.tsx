@@ -115,7 +115,7 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-7xl flex-col relative overflow-hidden px-4">
+    <div className="mx-auto flex h-full w-full max-w-7xl flex-col relative overflow-hidden">
       <GlobalPlayer />
       <SelectionPopup />
 
@@ -201,7 +201,7 @@ export function ChatInterface() {
 
       {/* Bottom input only shown when the chat has started */}
       {messages.length > 0 && (
-        <div className="mx-auto w-full max-w-chat  pb-4 pt-3 ">
+        <div className="mx-auto w-full max-w-chat  pb-4 pt-3 px-2">
           <ChatInputBox
             textInput={textInput}
             handleInputChange={handleInputChange}

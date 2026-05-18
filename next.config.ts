@@ -32,6 +32,7 @@ const nextConfig: NextConfig = {
     ],
   },
   transpilePackages: ["zod"],
+  allowedDevOrigins: [localIP, "localhost", "127.0.0.1", "192.168.1.2"],
   experimental: {
     serverActions: {
       allowedOrigins: [localIP, "localhost", "*.localhost", "127.0.0.1"],

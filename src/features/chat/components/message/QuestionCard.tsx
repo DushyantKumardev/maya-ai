@@ -1,26 +1,16 @@
-import React, {
-  useState,
-  useMemo,
-  useCallback,
-  useRef,
-  useEffect,
-} from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useChatContext } from "@/features/chat/context/ChatContext";
+import { APP_NAME } from "@/lib/constants";
 import {
   MessageCircleQuestion,
   Send,
   ChevronRight,
   ChevronLeft,
-  X,
+  Check,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/utils";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 
 export interface Question {
   id: string;
@@ -40,22 +30,20 @@ interface QuestionCardProps {
   isStreaming?: boolean;
 }
 
-/**
- * QuestionCard
- *
- * The main component rendered in the chat stream.
- * It shows a compact trigger button and manages a side sheet containing the form.
- */
 export function QuestionCard({
   data,
   messageId,
   isStreaming = false,
 }: QuestionCardProps) {
-  const { messages } = useChatContext();
-  const [isOpen, setIsOpen] = useState(false);
+  const { messages, handleSubmit } = useChatContext();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [localSubmitted, setLocalSubmitted] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [answers, setAnswers] = useState<Record<string, any>>(() =>
+    recoverAnswers(messages, messageId, data),
+  );
 
-  // Determine if this specific questionnaire has been submitted
-  const isSubmitted = useMemo(() => {
+  const isSubmittedExternal = useMemo(() => {
     const currentIndex = messages.findIndex((m) => m.id === messageId);
     if (currentIndex === -1) return false;
     return messages
@@ -67,148 +55,25 @@ export function QuestionCard({
       );
   }, [messages, messageId, data.title]);
 
-  if (!data || !data.questions || data.questions.length === 0) return null;
-
-  return (
-    <>
-      {/* Trigger Button in Chat */}
-      <div className="my-4 max-w-2xl animate-in fade-in zoom-in-95 duration-300">
-        <button
-          onClick={() => setIsOpen(true)}
-          className={cn(
-            "w-full flex items-center justify-between gap-3 p-3 rounded-lg border transition-all hover:bg-muted/50 group shadow-sm",
-            isSubmitted
-              ? "bg-emerald-500/5 border-emerald-500/20"
-              : "bg-primary/5 border-primary/20",
-          )}
-        >
-          <div className="flex items-center gap-2.5">
-            <div
-              className={cn(
-                "flex size-8 items-center justify-center rounded-lg shadow-sm transition-colors",
-                isSubmitted
-                  ? "bg-emerald-500/10 text-emerald-500"
-                  : "bg-primary/10 text-primary",
-              )}
-            >
-              <MessageCircleQuestion className="size-4" />
-            </div>
-            <div className="flex flex-col items-start leading-tight">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-                Questionnaire
-              </span>
-              <span className="text-sm font-semibold text-foreground line-clamp-1">
-                {data.title}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {isSubmitted ? (
-              <span className="text-[10px] font-bold text-emerald-500 uppercase bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                Completed
-              </span>
-            ) : (
-              <span className="text-[10px] font-bold text-primary uppercase bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 animate-pulse">
-                Action Required
-              </span>
-            )}
-            <ChevronRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-          </div>
-        </button>
-      </div>
-
-      {/* Side Sheet Overlay */}
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent
-          side="right"
-          className="w-full sm:w-[500px] sm:max-w-[500px] p-0 border-l border-border/50 overflow-hidden shadow-2xl [&>button]:hidden"
-          aria-describedby={undefined}
-        >
-          <SheetHeader className="sr-only">
-            <SheetTitle>{data.title}</SheetTitle>
-          </SheetHeader>
-          <QuestionFormContent
-            data={data}
-            messageId={messageId}
-            isSubmittedExternal={isSubmitted}
-            onClose={() => setIsOpen(false)}
-          />
-        </SheetContent>
-      </Sheet>
-    </>
-  );
-}
-
-/**
- * QuestionFormContent
- *
- * The actual interactive questionnaire logic.
- */
-function QuestionFormContent({
-  data,
-  messageId,
-  isSubmittedExternal,
-  onClose,
-}: {
-  data: QuestionData;
-  messageId: string;
-  isSubmittedExternal: boolean;
-  onClose: () => void;
-}) {
-  const { handleSubmit, messages } = useChatContext();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [localSubmitted, setLocalSubmitted] = useState(false);
-
   const isSubmitted = isSubmittedExternal || localSubmitted;
 
-  const [answers, setAnswers] = useState<Record<string, any>>(() => {
-    const currentIndex = messages.findIndex((m) => m.id === messageId);
-    if (currentIndex === -1) return {};
-
-    const answerMessage = messages
-      .slice(currentIndex + 1)
-      .find(
-        (m) =>
-          m.role === "user" &&
-          m.content.startsWith(`Here are my answers to "${data.title}":`),
-      );
-
-    if (answerMessage) {
-      const recovered: Record<string, any> = {};
-      const lines = answerMessage.content.split("\n");
-      data.questions.forEach((q) => {
-        const line = lines.find((l) => l.includes(`**${q.question}**:`));
-        if (line) {
-          const value = line.split("**: ")[1]?.trim();
-          if (value) {
-            if (q.type === "mcq") {
-              const parts = value.split(", ");
-              const standard = parts.filter((p) => !p.startsWith("Other: "));
-              const custom = parts.find((p) => p.startsWith("Other: "));
-              recovered[q.id] = standard;
-              if (custom)
-                recovered[`${q.id}_custom`] = custom.replace("Other: ", "");
-            } else {
-              recovered[q.id] = value;
-              if (
-                q.options &&
-                !q.options.includes(value) &&
-                value !== "No answer"
-              ) {
-                recovered[`${q.id}_isCustom`] = true;
-              }
-            }
-          }
-        }
-      });
-      return recovered;
-    }
-    return {};
-  });
+  if (!data?.questions?.length) return null;
 
   const totalSteps = data.questions.length;
   const currentQuestion = data.questions[currentStep];
   const isLastStep = currentStep === totalSteps - 1;
+
+  const isStepValid = () => {
+    const answer = answers[currentQuestion.id];
+    if (currentQuestion.type === "mcq")
+      return Array.isArray(answer) && answer.length > 0;
+    if (currentQuestion.type === "radio") {
+      if (answers[`${currentQuestion.id}_isCustom`])
+        return (answer || "").trim().length > 0;
+      return !!answer;
+    }
+    return (answer || "").trim().length > 0;
+  };
 
   const handleRadioChange = (questionId: string, value: string) => {
     setAnswers((prev) => ({
@@ -233,24 +98,37 @@ function QuestionFormContent({
   };
 
   const nextStep = () =>
-    currentStep < totalSteps - 1 && setCurrentStep(currentStep + 1);
-  const prevStep = () => currentStep > 0 && setCurrentStep(currentStep - 1);
+    currentStep < totalSteps - 1 && setCurrentStep((s) => s + 1);
+  const prevStep = () => currentStep > 0 && setCurrentStep((s) => s - 1);
 
-  const onFormSubmit = async () => {
+  const handleSkip = () => {
+    const updatedAnswers = {
+      ...answers,
+      [currentQuestion.id]: "Skipped",
+    };
+    setAnswers(updatedAnswers);
+
+    if (!isLastStep) {
+      setCurrentStep((s) => s + 1);
+    } else {
+      onFormSubmit(updatedAnswers);
+    }
+  };
+
+  const onFormSubmit = async (overrideAnswers?: Record<string, any>) => {
+    const activeAnswers = overrideAnswers || answers;
     const formattedAnswers = data.questions
       .map((q) => {
-        const answer = answers[q.id];
-        const customValue = answers[`${q.id}_custom`];
-        let displayAnswer = "No answer";
-
+        const answer = activeAnswers[q.id];
+        const customValue = activeAnswers[`${q.id}_custom`];
+        let displayAnswer = "Skipped";
         if (q.type === "mcq") {
           const selected = Array.isArray(answer) ? [...answer] : [];
           if (customValue?.trim())
             selected.push(`Other: ${customValue.trim()}`);
-          displayAnswer =
-            selected.length > 0 ? selected.join(", ") : "None selected";
+          displayAnswer = selected.length > 0 ? selected.join(", ") : "Skipped";
         } else {
-          displayAnswer = answer || "No answer";
+          displayAnswer = answer === "Skipped" || !answer ? "Skipped" : answer;
         }
         return `- **${q.question}**: ${displayAnswer}`;
       })
@@ -261,144 +139,144 @@ function QuestionFormContent({
     setLocalSubmitted(true);
   };
 
-  const isStepValid = () => {
-    const answer = answers[currentQuestion.id];
-    if (currentQuestion.type === "mcq")
-      return Array.isArray(answer) && answer.length > 0;
-    return !!answer;
-  };
-
+  // ── Submitted view ──────────────────────────────────────────────────────────
   if (isSubmitted) {
     return (
-      <div className="flex flex-col h-full bg-background animate-in fade-in duration-300">
-        <div className="flex items-center justify-between p-4 border-b border-border/50 bg-muted/20">
-          <div className="flex items-center gap-2.5">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
-              <MessageCircleQuestion className="size-5" />
-            </div>
-            <div className="flex flex-col">
-              <h3 className="text-sm font-bold text-foreground line-clamp-1">
-                {data.title}
-              </h3>
-              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
-                Completed
+      <div className="my-3 max-w-md animate-in fade-in duration-300">
+        <div className="rounded-lg border border-border/50 bg-card overflow-hidden">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className={cn(
+              "w-full flex items-center justify-between px-4 py-2.5 bg-muted/20 hover:bg-muted/40 transition-colors text-left group cursor-pointer",
+              isExpanded && "border-b border-border/50",
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <MessageCircleQuestion className="size-3.5 text-muted-foreground/70" />
+              <span className="text-xs font-semibold text-foreground/90">
+                {APP_NAME.split(" ")[0]} asked you
               </span>
             </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="size-8 rounded-lg"
+            <ChevronDown
+              className={cn(
+                "size-3.5 text-muted-foreground/60 transition-transform duration-200",
+                isExpanded ? "rotate-180" : "rotate-0",
+              )}
+            />
+          </button>
+          <div
+            className={cn(
+              "grid transition-all duration-300 ease-in-out",
+              isExpanded
+                ? "grid-rows-[1fr] opacity-100"
+                : "grid-rows-[0fr] opacity-0",
+            )}
           >
-            <X className="size-4" />
-          </Button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-          {data.questions.map((q) => {
-            const answer = answers[q.id];
-            let displayAnswer = "No answer";
-            if (Array.isArray(answer)) {
-              displayAnswer =
-                answer.length > 0 ? answer.join(", ") : "None selected";
-            } else if (answer) {
-              displayAnswer = answer;
-            }
-
-            return (
-              <div
-                key={q.id}
-                className="space-y-2 border-l-2 border-emerald-500/30 pl-4 py-1"
-              >
-                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">
-                  {q.question}
-                </span>
-                <p className="text-sm text-foreground/90 font-medium">
-                  {displayAnswer}
-                </p>
+            <div className="overflow-hidden">
+              <div className="divide-y divide-border/40">
+                {data.questions.map((q) => {
+                  const answer = answers[q.id];
+                  let displayAnswer = "No answer";
+                  if (Array.isArray(answer)) {
+                    displayAnswer =
+                      answer.length > 0 ? answer.join(", ") : "None selected";
+                  } else if (answer) {
+                    displayAnswer = answer;
+                  }
+                  return (
+                    <div
+                      key={q.id}
+                      className="px-4 py-3 space-y-0.5 animate-in fade-in duration-200"
+                    >
+                      <p className="text-[11px] font-semibold text-muted-foreground/85 uppercase tracking-wide">
+                        {q.question}
+                      </p>
+                      <p className="text-sm text-foreground/90 font-medium">
+                        {displayAnswer}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
+  // ── Active form ─────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full bg-background animate-in fade-in slide-in-from-right duration-500">
-      <div className="border-b border-border/50 bg-muted/30 p-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm">
-            <MessageCircleQuestion className="size-5" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-foreground">{data.title}</h3>
-            {totalSteps > 1 && (
-              <div className="text-[10px] font-bold text-primary/70 uppercase tracking-widest mt-0.5">
-                Step {currentStep + 1} of {totalSteps}
-              </div>
-            )}
-          </div>
+    <div className="my-3 max-w-lg animate-in fade-in slide-in-from-bottom-1 duration-300">
+      <div className="rounded-lg border border-border/50 bg-card overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-muted/30">
+          <MessageCircleQuestion className="size-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground">
+            {data.title}
+          </span>
+          {totalSteps > 1 && (
+            <span className="ml-auto text-[10px] font-medium text-muted-foreground/60">
+              {currentStep + 1} / {totalSteps}
+            </span>
+          )}
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="size-8 rounded-lg hover:bg-destructive/10 hover:text-destructive"
-        >
-          <X className="size-4" />
-        </Button>
-      </div>
 
-      <div className="h-1 w-full bg-muted overflow-hidden shrink-0">
-        <div
-          className="h-full bg-primary transition-all duration-500 ease-in-out"
-          style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
-        />
-      </div>
+        {/* Progress bar */}
+        {totalSteps > 1 && (
+          <div className="h-px w-full bg-border/40">
+            <div
+              className="h-full bg-foreground/20 transition-all duration-500 ease-in-out"
+              style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
+            />
+          </div>
+        )}
 
-      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+        {/* Question */}
         <div
           key={currentStep}
-          className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300"
+          className="p-4 space-y-3 animate-in fade-in slide-in-from-right-2 duration-200"
         >
-          <label className="text-lg font-bold text-foreground leading-tight block">
+          <p className="text-sm font-medium text-foreground leading-snug">
             {currentQuestion.question}
-          </label>
+          </p>
 
+          {/* Radio */}
           {currentQuestion.type === "radio" && currentQuestion.options && (
-            <div className="grid grid-cols-1 gap-2.5">
-              {currentQuestion.options.map((option) => (
-                <button
-                  key={option}
-                  onClick={() => handleRadioChange(currentQuestion.id, option)}
-                  className={cn(
-                    "flex items-center gap-4 px-5 py-4 rounded-lg border transition-all text-sm text-left group",
-                    answers[currentQuestion.id] === option &&
-                      !answers[`${currentQuestion.id}_isCustom`]
-                      ? "bg-primary/5 border-primary/40 text-primary ring-1 ring-primary/20 shadow-sm"
-                      : "bg-card border-border/50 text-muted-foreground hover:bg-accent/50 hover:border-border/80",
-                  )}
-                >
-                  <div
+            <div className="flex flex-col gap-1.5">
+              {currentQuestion.options.map((option) => {
+                const isSelected =
+                  answers[currentQuestion.id] === option &&
+                  !answers[`${currentQuestion.id}_isCustom`];
+                return (
+                  <button
+                    key={option}
+                    onClick={() =>
+                      handleRadioChange(currentQuestion.id, option)
+                    }
                     className={cn(
-                      "size-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
-                      answers[currentQuestion.id] === option &&
-                        !answers[`${currentQuestion.id}_isCustom`]
-                        ? "border-primary"
-                        : "border-muted-foreground/30 group-hover:border-muted-foreground/50",
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg border text-sm text-left transition-all",
+                      isSelected
+                        ? "border-foreground/30 bg-foreground/5 text-foreground"
+                        : "border-border/50 bg-background text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground",
                     )}
                   >
-                    {answers[currentQuestion.id] === option &&
-                      !answers[`${currentQuestion.id}_isCustom`] && (
-                        <div className="size-2.5 rounded-full bg-primary animate-in zoom-in-50" />
+                    <div
+                      className={cn(
+                        "size-4 rounded-full border flex items-center justify-center shrink-0 transition-colors",
+                        isSelected ? "border-foreground" : "border-border",
                       )}
-                  </div>
-                  <span className="font-semibold text-base">{option}</span>
-                </button>
-              ))}
+                    >
+                      {isSelected && (
+                        <div className="size-2 rounded-full bg-foreground animate-in zoom-in-50 duration-150" />
+                      )}
+                    </div>
+                    {option}
+                  </button>
+                );
+              })}
 
+              {/* Other option */}
               <button
                 onClick={() =>
                   setAnswers((prev) => ({
@@ -408,47 +286,45 @@ function QuestionFormContent({
                   }))
                 }
                 className={cn(
-                  "flex items-center gap-4 px-5 py-4 rounded-lg border transition-all text-sm text-left group",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg border text-sm text-left transition-all",
                   answers[`${currentQuestion.id}_isCustom`]
-                    ? "bg-primary/5 border-primary/40 text-primary ring-1 ring-primary/20 shadow-sm"
-                    : "bg-card border-border/50 text-muted-foreground hover:bg-accent/50 hover:border-border/80",
+                    ? "border-foreground/30 bg-foreground/5 text-foreground"
+                    : "border-border/50 bg-background text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground",
                 )}
               >
                 <div
                   className={cn(
-                    "size-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                    "size-4 rounded-full border flex items-center justify-center shrink-0",
                     answers[`${currentQuestion.id}_isCustom`]
-                      ? "border-primary"
-                      : "border-muted-foreground/30 group-hover:border-muted-foreground/50",
+                      ? "border-foreground"
+                      : "border-border",
                   )}
                 >
                   {answers[`${currentQuestion.id}_isCustom`] && (
-                    <div className="size-2.5 rounded-full bg-primary animate-in zoom-in-50" />
+                    <div className="size-2 rounded-full bg-foreground animate-in zoom-in-50 duration-150" />
                   )}
                 </div>
-                <span className="font-semibold text-base">
-                  Other / Custom Answer
-                </span>
+                Other
               </button>
 
               {answers[`${currentQuestion.id}_isCustom`] && (
-                <div className="mt-2 animate-in slide-in-from-top-2 duration-200">
-                  <textarea
-                    autoFocus
-                    value={answers[currentQuestion.id] || ""}
-                    onChange={(e) =>
-                      handleTextChange(currentQuestion.id, e.target.value)
-                    }
-                    placeholder="Enter your custom answer..."
-                    className="w-full bg-background border border-primary/30 rounded-lg px-5 py-4 text-base focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all min-h-32 resize-none shadow-sm"
-                  />
-                </div>
+                <textarea
+                  autoFocus
+                  value={answers[currentQuestion.id] || ""}
+                  onChange={(e) =>
+                    handleTextChange(currentQuestion.id, e.target.value)
+                  }
+                  placeholder="Type your answer…"
+                  rows={3}
+                  className="w-full mt-1 px-3 py-2.5 rounded-lg border border-border/50 bg-background text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-1 focus:ring-foreground/20 focus:border-foreground/30 transition-all"
+                />
               )}
             </div>
           )}
 
+          {/* MCQ */}
           {currentQuestion.type === "mcq" && currentQuestion.options && (
-            <div className="grid grid-cols-1 gap-2.5">
+            <div className="flex flex-col gap-1.5">
               {currentQuestion.options.map((option) => {
                 const isSelected = (answers[currentQuestion.id] || []).includes(
                   option,
@@ -458,96 +334,168 @@ function QuestionFormContent({
                     key={option}
                     onClick={() => handleMcqChange(currentQuestion.id, option)}
                     className={cn(
-                      "flex items-center gap-4 px-5 py-4 rounded-lg border transition-all text-sm text-left group",
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg border text-sm text-left transition-all",
                       isSelected
-                        ? "bg-primary/5 border-primary/40 text-primary ring-1 ring-primary/20 shadow-sm"
-                        : "bg-card border-border/50 text-muted-foreground hover:bg-accent/50 hover:border-border/80",
+                        ? "border-foreground/30 bg-foreground/5 text-foreground"
+                        : "border-border/50 bg-background text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground",
                     )}
                   >
                     <div
                       className={cn(
-                        "size-5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-colors",
+                        "size-4 rounded-md border flex items-center justify-center shrink-0 transition-colors",
                         isSelected
-                          ? "border-primary bg-primary"
-                          : "border-muted-foreground/30 group-hover:border-muted-foreground/50",
+                          ? "border-foreground bg-foreground"
+                          : "border-border",
                       )}
                     >
                       {isSelected && (
-                        <div className="size-3 bg-primary-foreground rounded-xs" />
+                        <Check className="size-2.5 text-background stroke-3" />
                       )}
                     </div>
-                    <span className="font-semibold text-base">{option}</span>
+                    {option}
                   </button>
                 );
               })}
 
-              <div className="pt-4 space-y-2">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                  Something else?
-                </label>
-                <textarea
-                  value={answers[`${currentQuestion.id}_custom`] || ""}
-                  onChange={(e) =>
-                    setAnswers((prev) => ({
-                      ...prev,
-                      [`${currentQuestion.id}_custom`]: e.target.value,
-                    }))
-                  }
-                  placeholder="Additional details or custom answer..."
-                  className="w-full bg-background border border-border/50 rounded-lg px-5 py-4 text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all placeholder:text-muted-foreground/40 min-h-32 resize-none"
-                />
-              </div>
-            </div>
-          )}
-
-          {currentQuestion.type === "text" && (
-            <div className="relative group">
               <textarea
-                autoFocus
-                value={answers[currentQuestion.id] || ""}
+                value={answers[`${currentQuestion.id}_custom`] || ""}
                 onChange={(e) =>
-                  handleTextChange(currentQuestion.id, e.target.value)
+                  setAnswers((prev) => ({
+                    ...prev,
+                    [`${currentQuestion.id}_custom`]: e.target.value,
+                  }))
                 }
-                placeholder="Type your answer here..."
-                className="w-full bg-background border border-border/50 rounded-lg px-5 py-4 text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all placeholder:text-secondary-foreground/40 min-h-40 resize-none shadow-inner"
+                placeholder="Anything else? (optional)"
+                rows={2}
+                className="mt-1 w-full px-3 py-2.5 rounded-lg border border-border/50 bg-background text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-1 focus:ring-foreground/20 focus:border-foreground/30 transition-all"
               />
             </div>
           )}
+
+          {/* Text */}
+          {currentQuestion.type === "text" && (
+            <textarea
+              autoFocus
+              value={answers[currentQuestion.id] || ""}
+              onChange={(e) =>
+                handleTextChange(currentQuestion.id, e.target.value)
+              }
+              placeholder="Type your answer…"
+              rows={4}
+              className="w-full px-3 py-2.5 rounded-lg border border-border/50 bg-background text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-1 focus:ring-foreground/20 focus:border-foreground/30 transition-all"
+            />
+          )}
         </div>
-      </div>
 
-      <div className="bg-muted/30 px-6 py-5 border-t border-border/50 flex items-center gap-4 shrink-0">
-        {currentStep > 0 && (
-          <Button
-            variant="outline"
-            onClick={prevStep}
-            className="flex-1 gap-2 rounded-lg h-12 border-border/50 font-bold"
-          >
-            <ChevronLeft className="size-4" />
-            Back
-          </Button>
-        )}
+        {/* Footer nav */}
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-border/50 bg-muted/20">
+          {currentStep > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={prevStep}
+              className="gap-1.5 h-8 px-3 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <ChevronLeft className="size-3.5" />
+              Back
+            </Button>
+          )}
 
-        {!isLastStep ? (
-          <Button
-            onClick={nextStep}
-            disabled={!isStepValid()}
-            className="flex-[2] gap-2 rounded-lg h-12 font-bold text-base shadow-sm"
-          >
-            Next Question
-            <ChevronRight className="size-4" />
-          </Button>
-        ) : (
-          <Button
-            onClick={onFormSubmit}
-            disabled={!isStepValid()}
-            className="flex-[2] gap-2 rounded-lg h-12 font-bold text-base shadow-md shadow-primary/10 animate-in fade-in slide-in-from-right-2"
-          >
-            <Send className="size-4" />
-            Send Responses
-          </Button>
-        )}
+          <div className="flex gap-1 ml-auto items-center">
+            {totalSteps > 1 &&
+              data.questions.map((_, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    "rounded-full transition-all duration-300",
+                    i === currentStep
+                      ? "w-3.5 h-1.5 bg-foreground/50"
+                      : "w-1.5 h-1.5 bg-foreground/20",
+                  )}
+                />
+              ))}
+          </div>
+
+          <div className="flex items-center gap-1.5 ml-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSkip}
+              className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            >
+              Skip
+            </Button>
+
+            {!isLastStep ? (
+              <Button
+                size="sm"
+                onClick={nextStep}
+                disabled={!isStepValid()}
+                className="gap-1.5 h-8 px-3 text-xs"
+              >
+                Next
+                <ChevronRight className="size-3.5" />
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={() => onFormSubmit()}
+                disabled={!isStepValid()}
+                className="gap-1.5 h-8 px-3 text-xs"
+              >
+                <Send className="size-3" />
+                Send
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function recoverAnswers(
+  messages: any[],
+  messageId: string,
+  data: QuestionData,
+): Record<string, any> {
+  const currentIndex = messages.findIndex((m) => m.id === messageId);
+  if (currentIndex === -1) return {};
+
+  const answerMessage = messages
+    .slice(currentIndex + 1)
+    .find(
+      (m) =>
+        m.role === "user" &&
+        m.content.startsWith(`Here are my answers to "${data.title}":`),
+    );
+
+  if (!answerMessage) return {};
+
+  const recovered: Record<string, any> = {};
+  const lines = answerMessage.content.split("\n");
+
+  data.questions.forEach((q) => {
+    const line = lines.find((l: string) => l.includes(`**${q.question}**:`));
+    if (!line) return;
+    const value = line.split("**: ")[1]?.trim();
+    if (!value) return;
+
+    if (q.type === "mcq") {
+      const parts = value.split(", ");
+      const standard = parts.filter((p: string) => !p.startsWith("Other: "));
+      const custom = parts.find((p: string) => p.startsWith("Other: "));
+      recovered[q.id] = standard;
+      if (custom) recovered[`${q.id}_custom`] = custom.replace("Other: ", "");
+    } else {
+      recovered[q.id] = value;
+      if (q.options && !q.options.includes(value) && value !== "No answer") {
+        recovered[`${q.id}_isCustom`] = true;
+      }
+    }
+  });
+
+  return recovered;
 }

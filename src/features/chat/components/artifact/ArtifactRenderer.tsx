@@ -24,12 +24,12 @@ interface ArtifactRendererProps {
 export function resolveArtifactType(type: string): ResolvedArtifactType {
   const t = type.toLowerCase().trim();
 
-  if (t === "html" || t === "htm") return "html";
-  if (["javascript", "js", "jsx"].includes(t)) return "javascript";
-  if (["typescript", "ts", "tsx"].includes(t)) return "typescript";
-  if (t === "css") return "css";
+  if (t === "html" || t === "htm" || t === "text/html") return "html";
+  if (["javascript", "js", "jsx", "text/javascript"].includes(t)) return "javascript";
+  if (["typescript", "ts", "tsx", "text/typescript"].includes(t)) return "typescript";
+  if (t === "css" || t === "text/css") return "css";
   if (["python", "py"].includes(t)) return "python";
-  if (t === "json") return "json";
+  if (t === "json" || t === "application/json") return "json";
   if (t.includes("markdown") || t.includes("md")) return "markdown";
 
   return "text";
@@ -97,7 +97,7 @@ export function ArtifactRenderer({ content, resolvedType, rawType }: ArtifactRen
       }
       return (
         <pre 
-          className="whitespace-pre-wrap break-words text-sm font-mono text-foreground/80 leading-relaxed p-8 w-full h-full"
+          className="whitespace-pre-wrap wrap-break-word text-sm font-mono text-foreground/80 leading-relaxed p-8 w-full h-full"
           data-component="ArtifactTextView"
         >
           {content}

@@ -8,7 +8,11 @@ import {
   buildRulesSection,
   BasePromptOptions,
 } from "./modules";
-import { TITLE_GENERATION_PROMPT, SUMMARIZATION_PROMPT, REASONING_EFFORT_INSTRUCTIONS } from "./constants";
+import {
+  TITLE_GENERATION_PROMPT,
+  SUMMARIZATION_PROMPT,
+  REASONING_EFFORT_INSTRUCTIONS,
+} from "./constants";
 import { Message } from "@/features/chat/types";
 import { AppSettings } from "@/features/settings/types";
 
@@ -103,7 +107,10 @@ export const assemblePrompt = (
       parts.push(
         `## SPEED MODE: NO THINKING\nAnswer immediately and directly. Do not engage in internal reasoning.`,
       );
-    } else if (reasoningEffort && REASONING_EFFORT_INSTRUCTIONS[reasoningEffort]) {
+    } else if (
+      reasoningEffort &&
+      REASONING_EFFORT_INSTRUCTIONS[reasoningEffort]
+    ) {
       parts.push(REASONING_EFFORT_INSTRUCTIONS[reasoningEffort]);
     }
   }
@@ -112,7 +119,6 @@ export const assemblePrompt = (
   if (reasoningEffort && reasoningEffort !== "none") {
     finalPrompt = `<think>\n${finalPrompt}`;
   }
-
   return finalPrompt;
 };
 
@@ -128,7 +134,15 @@ export function buildContextMessages(context: {
   tools?: any[];
   config?: PromptConfig;
 }): Message[] {
-  const { settings, location, summary, memories, tools, reasoningEffort, config: explicitConfig } = context;
+  const {
+    settings,
+    location,
+    summary,
+    memories,
+    tools,
+    reasoningEffort,
+    config: explicitConfig,
+  } = context;
 
   const promptContext: PromptContext = {
     memories: memories || [],
@@ -151,7 +165,11 @@ export function buildContextMessages(context: {
     rules: { status: "on" },
   };
 
-  const systemPrompt = assemblePrompt(promptConfig, promptContext, reasoningEffort);
+  const systemPrompt = assemblePrompt(
+    promptConfig,
+    promptContext,
+    reasoningEffort,
+  );
 
   return [
     {
@@ -166,16 +184,33 @@ export function buildContextMessages(context: {
 
 export function buildTitleMessages(firstMessage: string): Message[] {
   const now = new Date();
-  const date = now.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
-  const time = now.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true }).toLowerCase();
+  const date = now.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const time = now
+    .toLocaleTimeString("en-IN", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
+    .toLowerCase();
 
   return [
-    { id: "title-gen-system", role: "system", content: TITLE_GENERATION_PROMPT(date, time) },
+    {
+      id: "title-gen-system",
+      role: "system",
+      content: TITLE_GENERATION_PROMPT(date, time),
+    },
     { id: "title-gen-user", role: "user", content: firstMessage },
   ];
 }
 
-export function buildSummaryMessages(history: string, existingSummary: string): Message[] {
+export function buildSummaryMessages(
+  history: string,
+  existingSummary: string,
+): Message[] {
   const fullPrompt = `${SUMMARIZATION_PROMPT}\n\n${
     existingSummary ? `EXISTING SUMMARY:\n${existingSummary}\n\n` : ""
   }NEW MESSAGES TO INTEGRATE:\n${history}`;

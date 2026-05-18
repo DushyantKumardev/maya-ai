@@ -2,9 +2,19 @@
 
 **High-performance, privacy-first agentic AI assistant built for the modern web.**
 
-Maya AI is not just another chat interface. It is a powerful, extensible "Brain" designed to reason, search, and execute tasks with precision. Built with **Next.js 16** and **Tailwind CSS v4**, Maya delivers a premium, low-latency experience for both local and cloud-based AI workflows.
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://maya-ai-navy-nine.vercel.app/)
+
+
+---
 
 ![Maya AI Interface](./public/demo/image.png)
+
+---
+
+> [!TIP]
+> **Experience Maya AI instantly in your browser!**  
+> 🚀 **[Try the Live Web Preview](https://maya-ai-navy-nine.vercel.app/)** — *Zero local setup required.*  
+> *(⚠️ Note: The live demo runs on shared free-tier resources. If quotas are exhausted due to high traffic, we highly recommend cloning the repo and running it locally!)*
 
 ---
 

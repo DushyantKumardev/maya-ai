@@ -8,7 +8,7 @@ import { usePlayback } from "../../../context/PlaybackContext";
 import { useChatContext } from "../../../context/ChatContext";
 import { WidgetProps } from "../index";
 
-export default function TunelinkWidget({ part }: WidgetProps) {
+export default function TunelinkWidget({ part, messageId }: WidgetProps) {
   const rawData = (part as any).data;
   const data = rawData?.result || rawData;
 
@@ -18,7 +18,7 @@ export default function TunelinkWidget({ part }: WidgetProps) {
     play,
     pause,
   } = usePlayback();
-  const { isStreaming } = useChatContext();
+  const { messages, isStreaming } = useChatContext();
 
   const audioUrl = data?.audioUrl || data?.url;
   const isCurrentTrack = activeId === audioUrl;
@@ -35,9 +35,10 @@ export default function TunelinkWidget({ part }: WidgetProps) {
   const coverArt = resultCoverArt || screenshot;
   const hasAutoPlayed = useRef(false);
 
-  // Sync with global player on mount
+  // Sync with global player on mount (only for fresh stream of the latest message)
   useEffect(() => {
-    if (audioUrl && isStreaming && activeId !== audioUrl && !hasAutoPlayed.current) {
+    const isLastMessage = messages.length > 0 && messages[messages.length - 1].id === messageId;
+    if (audioUrl && isStreaming && isLastMessage && activeId !== audioUrl && !hasAutoPlayed.current) {
       play(audioUrl, "audio", {
         title: title || "Unknown Title",
         artist: artist || "Unknown Artist",
@@ -46,7 +47,7 @@ export default function TunelinkWidget({ part }: WidgetProps) {
       });
       hasAutoPlayed.current = true;
     }
-  }, [audioUrl, isStreaming, play, activeId, title, artist, coverArt, label]);
+  }, [audioUrl, isStreaming, play, activeId, title, artist, coverArt, label, messages, messageId]);
 
   const isDone = part.type === "tool_result" || (part as any).done;
   if (!isDone) return null;

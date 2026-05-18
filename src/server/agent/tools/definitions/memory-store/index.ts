@@ -15,7 +15,14 @@ interface MemorySystemOptions {
 }
 
 interface MemoriesArgs {
-  action: "add" | "delete" | "update" | "list" | "search" | "clear" | "add_bulk";
+  action:
+    | "add"
+    | "delete"
+    | "update"
+    | "list"
+    | "search"
+    | "clear"
+    | "add_bulk";
   content?: string;
   id?: string;
   query?: string;
@@ -39,12 +46,9 @@ interface SettingsWithMemories {
 }
 
 const LLM_BEHAVIOR_INSTRUCTIONS = `
-CRITICAL RESPONSE RULES - NEVER BREAK THESE:
-- Never say "based on my memory", "I recall", "I know from our past conversations", "from memory", or any phrase that exposes the memory system.
-- Never reference the memory tool or its operations in your response.
-- Use stored facts naturally, as if you simply know them.
-- If asked "do you remember X?", answer naturally without describing a recall mechanism.
-- If no relevant memory is found, respond helpfully without mentioning the absence of memory.
+- Never mention memory, recall, or stored data.
+- Use known info naturally.
+- If unsure, respond normally without mentioning memory.
 `.trim();
 
 function getErrorMessage(error: unknown): string {
@@ -57,8 +61,7 @@ function createMemoryId(): string {
 
 function sortMemoriesByCreatedAt(memories: Memory[]): Memory[] {
   return [...memories].sort(
-    (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 }
 
@@ -71,12 +74,21 @@ export const memoriesTool = {
     properties: {
       action: {
         type: "string",
-        enum: ["add", "delete", "update", "list", "search", "clear", "add_bulk"],
+        enum: [
+          "add",
+          "delete",
+          "update",
+          "list",
+          "search",
+          "clear",
+          "add_bulk",
+        ],
         description: "The operation to perform on the memory store.",
       },
       content: {
         type: "string",
-        description: "The fact or facts to store. For add_bulk, provide one fact per line.",
+        description:
+          "The fact or facts to store. For add_bulk, provide one fact per line.",
       },
       id: {
         type: "string",
@@ -92,7 +104,7 @@ export const memoriesTool = {
       },
       limit: {
         type: "number",
-        description: "Number of results to return (default: 20, max: 50).",
+        description: "Number of results to return (default: 10, max: 30).",
       },
     },
     required: ["action"],
@@ -272,14 +284,19 @@ export const memoriesTool = {
           }
 
           const paginated = scoredResults.slice(offset, offset + safeLimit);
-          const remainingCount = Math.max(0, totalMatches - (offset + safeLimit));
+          const remainingCount = Math.max(
+            0,
+            totalMatches - (offset + safeLimit),
+          );
 
           status(`${totalMatches} matching memories found.`, true);
           return {
             instructions:
               `${LLM_BEHAVIOR_INSTRUCTIONS}\n\nRelevant facts for "${query}":\n` +
               paginated
-                .map((result) => `[${result.memory.id}] ${result.memory.content}`)
+                .map(
+                  (result) => `[${result.memory.id}] ${result.memory.content}`,
+                )
                 .join("\n"),
             metadata: {
               total_matches: totalMatches,
@@ -316,14 +333,14 @@ export const memoriesTool = {
 
         case "update": {
           if (!id || !content.trim()) {
-            throw new Error("'id' and 'content' are required to update a memory.");
+            throw new Error(
+              "'id' and 'content' are required to update a memory.",
+            );
           }
 
           status("Updating memory...");
 
-          const memory = settings.memories.find(
-            (item) => item.id === id,
-          );
+          const memory = settings.memories.find((item) => item.id === id);
           if (!memory) {
             throw new Error(`Memory ID "${id}" not found.`);
           }
