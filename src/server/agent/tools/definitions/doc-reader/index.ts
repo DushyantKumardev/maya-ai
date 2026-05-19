@@ -28,7 +28,7 @@ export const docReaderTool = {
 interface StatusUpdate {
   message: string;
   done?: boolean;
-  data?: any;
+  data?: unknown;
 }
 
 interface DocReaderSystemOptions {

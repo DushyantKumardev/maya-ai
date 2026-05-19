@@ -170,7 +170,7 @@ const ConversationList = ({ open }: { open: boolean }) => {
                   isActive={activeConversationId === conv._id}
                   className="group/item relative h-10 rounded-lg px-3 text-[13px] font-medium transition-all duration-200 hover:bg-sidebar-accent/50 data-[active=true]:bg-sidebar-accent/80 data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-sm"
                 >
-                  <Link href={`/c/${conv._id}`}>
+                  <Link href={`/c/${conv._id}`} prefetch={false}>
                     {/* Active indicator bar */}
                     {activeConversationId === conv._id && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.75 rounded-r-full bg-primary" />

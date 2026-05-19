@@ -102,8 +102,8 @@ export async function PATCH(req: Request, { params }: RouteParams) {
 
     // Check if persistence is disabled via settings
     const { Settings } = await import("@/server/db/models/settings-model");
-    const dbSettings = await Settings.findOne({ userId: session.user.id }).lean();
-    const persistConversations = (dbSettings as any)?.history?.persistConversations !== false;
+    const dbSettings = await Settings.findOne({ userId: session.user.id }).lean() as { persistConversations?: boolean } | null;
+    const persistConversations = dbSettings?.persistConversations !== false;
 
     // If persistence is disabled OR the ID is ephemeral, we don't save to the database
     if (isEphemeral || !persistConversations) {

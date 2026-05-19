@@ -41,6 +41,36 @@ openssl rand -base64 32
 
 ---
 
+## 📧 Transactional Email Configuration
+
+Maya AI features a global, system-wide transactional background mailer. This engine manages sensitive security dispatches such as account confirmation, password reset links, and registration alerts. 
+
+You can configure either **Option A (SMTP Server)** or **Option B (Resend API)** using the following environment variables:
+
+### Option A: SMTP Server (e.g. Gmail App Password, Mailgun, SendGrid)
+
+Use this setup to dispatch emails via a standard SMTP server.
+
+| Variable | Description | Example / Default |
+| :--- | :--- | :--- |
+| `GLOBAL_ENV_SMTP_HOST` | Host address of your SMTP server. | `smtp.gmail.com` |
+| `GLOBAL_ENV_SMTP_PORT` | Port of your SMTP server (typically `465` for SSL or `587` for TLS). | `465` |
+| `GLOBAL_ENV_SMTP_SECURE` | Set to `true` to use SSL/TLS (`465`) or `false` for standard ports. | `true` |
+| `GLOBAL_ENV_SMTP_USER` | Username/email to authenticate with the SMTP server. | `your_email@gmail.com` |
+| `GLOBAL_ENV_SMTP_PASS` | Password or dedicated App Password for email authentication. | `your_app_password` |
+| `GLOBAL_ENV_SMTP_FROM` | The sender address shown to users. | `no-reply@yourdomain.com` |
+
+### Option B: Resend API (Recommended for Production & Cloud Deployments)
+
+Highly recommended for high-deliverability cloud platforms (like Vercel).
+
+| Variable | Description | Example / Default |
+| :--- | :--- | :--- |
+| `GLOBAL_ENV_RESEND_API_KEY` | Your Resend dashboard API Key. | `re_your_api_key` |
+| `GLOBAL_ENV_RESEND_FROM_EMAIL` | Verified domain sender address in Resend (must be verified on your dashboard). | `no-reply@yourdomain.com` |
+
+---
+
 ## ☁️ Cloud & Serverless Deployments (Vercel)
 
 When deploying Maya AI to serverless environments (like Vercel) where the local filesystem is read-only or ephemeral, you must configure **Cloud Mode** and **Cloudinary** for file uploads.

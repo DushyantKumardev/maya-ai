@@ -12,7 +12,7 @@ export async function describeImage(
   userPrompt: string,
   context?: { provider?: string; model?: string; settings?: any },
 ): Promise<string> {
-  const { provider, model, settings } = context || {};
+  const { settings } = context || {};
 
   // 1. Try the selected model if vision-capable (handled by caller)
   // 2. Fallback chain: Ollama Cloud → Ollama Local

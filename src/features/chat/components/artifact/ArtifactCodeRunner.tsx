@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import { RefreshCw, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/utils";
@@ -44,29 +44,38 @@ function buildSrcdoc(code: string, language: ResolvedArtifactType): string {
  * ArtifactCodeRunner — renders a sandboxed <iframe> preview for HTML / vanilla JS.
  * Does not capture console logs to ensure a clean productivity user experience.
  */
-export function ArtifactCodeRunner({ code, language, isStreaming = false }: ArtifactCodeRunnerProps) {
+export function ArtifactCodeRunner({
+  code,
+  language,
+  isStreaming = false,
+}: ArtifactCodeRunnerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [srcdoc, setSrcdoc] = useState(() => buildSrcdoc(code, language));
   const [isLoading, setIsLoading] = useState(true);
-  const runId = useRef(0); // used to ignore stale messages after reload
-  const hasLoadedOnce = useRef(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
-  useEffect(() => {
-    // If it's streaming, do not reload/re-run the iframe code
-    if (isStreaming) {
-      return;
-    }
+  // Sync state during the render pass when props change to avoid synchronous useEffect setState calls (preventing cascading renders)
+  const [prevCode, setPrevCode] = useState(code);
+  const [prevLanguage, setPrevLanguage] = useState(language);
+  const [prevIsStreaming, setPrevIsStreaming] = useState(isStreaming);
 
-    runId.current += 1;
+  if (
+    !isStreaming &&
+    (code !== prevCode || language !== prevLanguage || isStreaming !== prevIsStreaming)
+  ) {
+    setPrevCode(code);
+    setPrevLanguage(language);
+    setPrevIsStreaming(isStreaming);
     setSrcdoc(buildSrcdoc(code, language));
     setIsLoading(true);
-    hasLoadedOnce.current = false;
-  }, [code, language, isStreaming]);
+    setHasLoadedOnce(false);
+  } else if (isStreaming !== prevIsStreaming) {
+    setPrevIsStreaming(isStreaming);
+  }
 
   const handleReload = useCallback(() => {
-    runId.current += 1;
     setIsLoading(true);
-    hasLoadedOnce.current = false;
+    setHasLoadedOnce(false);
     setSrcdoc(buildSrcdoc(code, language));
   }, [code, language]);
 
@@ -78,7 +87,7 @@ export function ArtifactCodeRunner({ code, language, isStreaming = false }: Arti
   }, [code, language, srcdoc]);
 
   return (
-    <div 
+    <div
       className="flex flex-col h-full w-full overflow-hidden rounded-lg border border-border/40 bg-black/40"
       data-component="ArtifactCodeRunner"
     >
@@ -104,7 +113,9 @@ export function ArtifactCodeRunner({ code, language, isStreaming = false }: Arti
             onClick={handleReload}
             title="Reload preview"
           >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+            <RefreshCw
+              className={cn("size-3.5", isLoading && "animate-spin")}
+            />
           </Button>
         </div>
       </div>
@@ -117,9 +128,12 @@ export function ArtifactCodeRunner({ code, language, isStreaming = false }: Arti
               <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center animate-pulse">
                 <RefreshCw className="size-5 animate-spin" />
               </div>
-              <h3 className="text-sm font-bold text-foreground">Generating Preview...</h3>
+              <h3 className="text-sm font-bold text-foreground">
+                Generating Preview...
+              </h3>
               <p className="text-xs text-muted-foreground">
-                We'll render the interactive preview once the assistant finishes writing the code.
+                We&apos;ll render the interactive preview once the assistant
+                finishes writing the code.
               </p>
             </div>
           </div>
@@ -132,11 +146,11 @@ export function ArtifactCodeRunner({ code, language, isStreaming = false }: Arti
             className="w-full h-full border-0 bg-white"
             onLoad={() => {
               setIsLoading(false);
-              hasLoadedOnce.current = true;
+              setHasLoadedOnce(true);
             }}
           />
         )}
-        {isLoading && !hasLoadedOnce.current && !isStreaming && (
+        {isLoading && !hasLoadedOnce && !isStreaming && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
             <div className="size-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
           </div>

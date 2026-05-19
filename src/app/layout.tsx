@@ -28,16 +28,19 @@ export const metadata: Metadata = {
 
 
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { auth } from "@/features/auth/config/auth";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn(inter.variable, "font-sans antialiased")}>
-        <AuthProvider>
+        <AuthProvider session={session}>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

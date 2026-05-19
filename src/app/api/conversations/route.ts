@@ -53,8 +53,8 @@ export async function POST(req: Request) {
 
     await connectDB();
     const { Settings } = await import("@/server/db/models/settings-model");
-    const dbSettings = await Settings.findOne({ userId: session.user.id }).lean();
-    const persistConversations = (dbSettings as any)?.history?.persistConversations !== false;
+    const dbSettings = await Settings.findOne({ userId: session.user.id }).lean() as { persistConversations?: boolean } | null;
+    const persistConversations = dbSettings?.persistConversations !== false;
 
     const body = await req.json().catch(() => ({}));
     const title = body.title || "New Chat";

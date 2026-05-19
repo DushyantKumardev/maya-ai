@@ -1,5 +1,3 @@
-import Attachment, { IAttachment } from "@/server/db/models/attachment-model";
-import { API_ENDPOINTS } from "@/lib/constants/api";
 import type {
   ProviderContentPart,
   StreamMessageInput,

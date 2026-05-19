@@ -16,7 +16,7 @@ export async function PATCH(req: Request) {
     const { provider, modelId, config } = await req.json();
     await connectDB();
 
-    const updateQuery: any = {};
+    const updateQuery: Record<string, unknown> = {};
     if (provider !== undefined) updateQuery["provider"] = provider;
     if (modelId !== undefined) updateQuery["modelId"] = modelId;
     if (config !== undefined) updateQuery["config"] = config;

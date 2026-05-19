@@ -1,5 +1,4 @@
 import { buildContextMessages } from "@/server/agent/prompt";
-import type { Message } from "@/features/chat/types";
 
 /**
  * Context Layer — Step 2d: Message Builder

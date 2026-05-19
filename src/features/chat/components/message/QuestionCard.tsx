@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import { useChatContext } from "@/features/chat/context/ChatContext";
 import { APP_NAME } from "@/lib/constants";
 import {
@@ -30,11 +30,7 @@ interface QuestionCardProps {
   isStreaming?: boolean;
 }
 
-export function QuestionCard({
-  data,
-  messageId,
-  isStreaming = false,
-}: QuestionCardProps) {
+export function QuestionCard({ data, messageId }: QuestionCardProps) {
   const { messages, handleSubmit } = useChatContext();
   const [currentStep, setCurrentStep] = useState(0);
   const [localSubmitted, setLocalSubmitted] = useState(false);

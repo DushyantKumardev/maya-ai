@@ -726,6 +726,7 @@ export function useChatHandler(options: UseChatHandlerOptions = {}) {
     replyTo,
     settings.modelId,
     settings.provider,
+    settings.persistConversations,
     currentConversationId,
     session,
     status,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { API_ENDPOINTS } from "@/lib/constants/api";
@@ -15,24 +15,88 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { User, Mail, Lock, AlertCircle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "sonner";
+import {
+  validatePassword,
+  PasswordValidationResult,
+} from "@/lib/utils/password-validator";
+import { validateEmail } from "@/lib/utils/email-validator";
 
 export function RegisterForm() {
+  // --- Hooks & Router ---
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // --- Form State ---
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  // --- Validation States ---
+  const [emailFeedback, setEmailFeedback] = useState<string | null>(null);
+  const [strength, setStrength] = useState<PasswordValidationResult>({
+    isValid: false,
+    score: 0,
+    feedback: null,
+    checks: {
+      hasMinLength: false,
+      hasMixedCase: false,
+      hasNumber: false,
+      hasSpecial: false,
+      isNotCommon: false,
+      doesNotContainEmail: false,
+    },
+  });
+
+  // --- Input Change Handler ---
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // --- Side Effects for Real-Time Validation ---
+  useEffect(() => {
+    if (formData.email) {
+      const emailResult = validateEmail(formData.email);
+      setEmailFeedback(emailResult.feedback);
+    } else {
+      setEmailFeedback(null);
+    }
+  }, [formData.email]);
+
+  useEffect(() => {
+    setStrength(validatePassword(formData.password, formData.email));
+  }, [formData.password, formData.email]);
+
+  // --- Submission Handler ---
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget as HTMLFormElement);
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const confirmPassword = formData.get("confirmPassword") as string;
+    const emailResult = validateEmail(formData.email);
+    if (!emailResult.isValid) {
+      setError(emailResult.feedback || "Please select a valid email address");
+      setLoading(false);
+      return;
+    }
 
-    if (password !== confirmPassword) {
+    if (!strength.isValid) {
+      setError(strength.feedback || "Please select a more secure password");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       setLoading(false);
       return;
@@ -44,10 +108,15 @@ export function RegisterForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
       });
 
       if (res.ok) {
+        toast.success("Account created successfully!");
         router.push("/login");
       } else {
         const data = await res.json();
@@ -61,53 +130,173 @@ export function RegisterForm() {
   };
 
   return (
-    <Card className="w-full max-w-sm rounded-3xl border-border/70 bg-card shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:shadow-none">
-      <CardHeader className="space-y-2">
-        <CardTitle className="text-2xl">Create account</CardTitle>
-        <CardDescription>
-          Set up your account to start chatting.
+    <Card className="w-full rounded-[24px] border border-border/80 bg-card shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-none p-1.5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <CardHeader className="space-y-1 pb-4">
+        <CardTitle className="text-xl font-semibold text-card-foreground">
+          Sign Up
+        </CardTitle>
+        <CardDescription className="text-muted-foreground text-xs">
+          Set up your profile to start chatting.
         </CardDescription>
       </CardHeader>
+
       <form onSubmit={handleRegister}>
-        <CardContent className="grid gap-4">
+        <CardContent className="space-y-3.5 pb-3">
           {error && (
-            <div className="text-sm text-red-500 font-medium">{error}</div>
+            <div className="flex items-center gap-2 rounded-xl bg-destructive/10 border border-destructive/20 p-3 text-xs font-medium text-destructive animate-in fade-in duration-300">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
           )}
-          <div className="grid gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" name="name" placeholder="John Doe" required />
+
+          {/* Name Field */}
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="name"
+              className="text-muted-foreground text-xs font-medium"
+            >
+              Full Name
+            </Label>
+            <div className="relative group">
+              <User className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/60 transition-colors group-focus-within:text-primary" />
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                placeholder="John Doe"
+                value={formData.name}
+                onChange={handleChange}
+                className="pl-11 rounded-xl h-11 border-input bg-background/50 text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-ring transition-all"
+                required
+              />
+            </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="m@example.com"
-              required
-            />
+
+          {/* Email Field */}
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="email"
+              className="text-muted-foreground text-xs font-medium"
+            >
+              Email Address
+            </Label>
+            <div className="relative group">
+              <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/60 transition-colors group-focus-within:text-primary" />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@domain.com"
+                value={formData.email}
+                onChange={handleChange}
+                className="pl-11 rounded-xl h-11 border-input bg-background/50 text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-ring transition-all"
+                required
+              />
+            </div>
+            {emailFeedback && (
+              <p className="text-[10px] text-destructive leading-none font-medium mt-1 animate-in fade-in duration-300">
+                {emailFeedback}
+              </p>
+            )}
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" required />
+
+          {/* Password Field */}
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="password"
+              className="text-muted-foreground text-xs font-medium"
+            >
+              Password
+            </Label>
+            <div className="relative group">
+              <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/60 transition-colors group-focus-within:text-primary" />
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                className="pl-11 rounded-xl h-11 border-input bg-background/50 text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-ring transition-all"
+                required
+              />
+            </div>
+
+            {formData.password && (
+              <div className="space-y-1.5 mt-2 animate-in fade-in duration-300">
+                <div className="flex gap-1 h-1">
+                  {[1, 2, 3, 4].map((index) => (
+                    <div
+                      key={index}
+                      className={`h-full flex-1 rounded-full transition-all duration-300 ${
+                        index <= strength.score
+                          ? strength.score === 1
+                            ? "bg-destructive"
+                            : strength.score === 2
+                              ? "bg-amber-500"
+                              : strength.score === 3
+                                ? "bg-primary/50"
+                                : "bg-primary"
+                          : "bg-muted"
+                      }`}
+                    />
+                  ))}
+                </div>
+                {strength.feedback && (
+                  <p className="text-[10px] text-muted-foreground leading-none font-medium">
+                    {strength.feedback}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              required
-            />
+
+          {/* Confirm Password Field */}
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="confirmPassword"
+              className="text-muted-foreground text-xs font-medium"
+            >
+              Confirm Password
+            </Label>
+            <div className="relative group">
+              <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/60 transition-colors group-focus-within:text-primary" />
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="pl-11 rounded-xl h-11 border-input bg-background/50 text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-ring transition-all"
+                required
+              />
+            </div>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-          <Button className="h-11 w-full rounded-xl" disabled={loading}>
-            {loading ? "Creating account..." : "Sign Up"}
+
+        <CardFooter className="flex flex-col gap-4 pb-4">
+          <Button
+            className="h-11 w-full rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold active:scale-[0.98] transition-all duration-200 cursor-pointer shadow-sm"
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <Spinner className="w-4 h-4 border-primary-foreground/30 border-t-primary-foreground" />{" "}
+                Creating Profile...
+              </span>
+            ) : (
+              "Sign Up"
+            )}
           </Button>
-          <div className="text-center text-sm">
+
+          <div className="text-center text-xs text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="underline underline-offset-4">
+            <Link
+              href="/login"
+              className="text-primary hover:underline font-medium transition-colors underline-offset-4"
+            >
               Log in
             </Link>
           </div>

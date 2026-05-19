@@ -44,7 +44,7 @@ export async function GET(req: Request) {
     }
 
     // Normalize the output
-    const models = (list?.data || []).map((model: Record<string, any>) => ({
+    const models = (list?.data || []).map((model: { id: string; owned_by?: string }) => ({
       id: model.id,
       name: model.id,
       owned_by: model.owned_by,

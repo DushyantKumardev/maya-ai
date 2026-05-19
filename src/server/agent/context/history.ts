@@ -20,7 +20,7 @@ export async function loadChatHistory(params: {
   sendChunk: SendChunkFn;
 }) {
   const { config, settings, activeProvider, activeModel, sendChunk } = params;
-  const { messages, conversationId, model } = config;
+  const { messages, conversationId } = config;
 
   const maxHistory =
     settings?.maxMessagesPerConversation ??

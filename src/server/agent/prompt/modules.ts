@@ -78,16 +78,8 @@ export function buildOutputSection(format: string): string {
 
 // ─── Tools ────────────────────────────────────────────────────────────────────
 
-export function buildToolsSection(tools: any[]): string {
+export function buildToolsSection(tools: unknown[]): string {
   if (!tools?.length) return "";
-  const toolList = tools
-    .map((t) => {
-      const name = t.function?.name || t.name;
-      const description = t.function?.description || t.description;
-      return `- ${name}: ${description}`;
-    })
-    .join("\n");
-
   return `## TOOLS:
  - Never call tools silently.
 - Before EACH tool call, render a visible status message.

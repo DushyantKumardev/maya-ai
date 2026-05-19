@@ -4,7 +4,7 @@ import { Suspense } from "react";
 
 export default function RegisterPage() {
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-secondary px-4">
+    <div className="w-full flex items-center justify-center">
       <Suspense fallback={<Loader />}>
         <RegisterForm />
       </Suspense>

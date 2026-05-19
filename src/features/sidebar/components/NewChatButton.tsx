@@ -2,7 +2,6 @@
  
 import { Plus } from "lucide-react";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
-import { useRouter } from "next/navigation";
 
 interface NewChatButtonProps {
   variant: "outline" | "default";
@@ -11,7 +10,6 @@ interface NewChatButtonProps {
 }
 
 const NewChatButton = ({ variant, size, iconOnly }: NewChatButtonProps) => {
-  const router = useRouter();
 
   const handleNewChat = () => {
     window.dispatchEvent(new CustomEvent("new-chat"));

@@ -67,16 +67,18 @@ const ChatMessage = React.memo(function ChatMessage({
     <MessageRoot
       isUser={isUser}
       data-component="chat-message"
-      className="animate-slide-in-from-bottom-4 px-4 py-3 md:px-0"
+      className="animate-slide-in-from-bottom-4 px-4 py-3"
     >
       <MessageContent isUser={isUser}>
         <MessageAttachments message={message} isUser={isUser} />
 
         {message.replyTo && (
-          <div className={cn(
-            "mb-1 flex max-w-[85%] items-center gap-2 overflow-hidden rounded-2xl bg-white/5 px-3 py-2 text-xs backdrop-blur-sm ring-1 ring-white/10",
-            isUser ? "ml-auto rounded-br-none" : "mr-auto rounded-bl-none"
-          )}>
+          <div
+            className={cn(
+              "mb-1 flex max-w-[85%] items-center gap-2 overflow-hidden rounded-2xl bg-white/5 px-3 py-2 text-xs backdrop-blur-sm ring-1 ring-white/10",
+              isUser ? "ml-auto rounded-br-none" : "mr-auto rounded-bl-none",
+            )}
+          >
             <Reply className="h-3.5 w-3.5 shrink-0 opacity-60" />
             <span className="truncate text-foreground/60 italic">
               {message.replyTo}
@@ -139,9 +141,9 @@ const ChatMessage = React.memo(function ChatMessage({
                   className="h-auto py-2.5 px-4 text-[12px] font-medium rounded-2xl border-primary/10 bg-primary/5 hover:bg-primary/10 hover:border-primary/20 text-primary transition-all whitespace-normal text-left max-w-sm group/btn shadow-xs"
                 >
                   <span className="flex-1">{paa.question}</span>
-                  <ArrowUpRight 
-                    size={13} 
-                    className="ml-2 opacity-30 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-all shrink-0" 
+                  <ArrowUpRight
+                    size={13}
+                    className="ml-2 opacity-30 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-all shrink-0"
                   />
                 </Button>
               ))}

@@ -7,6 +7,8 @@ export interface IUser {
   password?: string;
   image?: string;
   provider: "credentials" | "google" | "github";
+  resetToken?: string;
+  resetTokenExpiry?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,6 +25,8 @@ const UserSchema = new Schema<IUser>(
     password: { type: String, select: false }, // Don't return password by default
     image: { type: String },
     provider: { type: String, default: "credentials" },
+    resetToken: { type: String },
+    resetTokenExpiry: { type: Date },
   },
   { timestamps: true },
 );

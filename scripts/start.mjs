@@ -1,6 +1,6 @@
-import { spawn } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { spawn } from "child_process";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,19 +28,29 @@ ${COLORS.magenta}🚀 Production Server Starting...${COLORS.reset}
 
 function startServer() {
   console.log(LOGO);
-  console.log(`${COLORS.blue}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${COLORS.reset}`);
-  console.log(`${COLORS.green}🌍 Maya AI is initializing on http://localhost:3000${COLORS.reset}`);
-  console.log(`${COLORS.yellow}🛡️  Privacy Mode: Active | Encryption: AES-256-GCM${COLORS.reset}`);
-  console.log(`${COLORS.blue}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${COLORS.reset}\n`);
+  console.log(
+    `${COLORS.blue}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${COLORS.reset}`,
+  );
+  console.log(
+    `${COLORS.green}🌍 Maya AI is initializing on http://localhost:3000${COLORS.reset}`,
+  );
+  console.log(
+    `${COLORS.yellow}🛡️  Privacy Mode: Active | Encryption: AES-256-GCM${COLORS.reset}`,
+  );
+  console.log(
+    `${COLORS.blue}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${COLORS.reset}\n`,
+  );
 
-  const nextStart = spawn('npx', ['next', 'start'], {
-    stdio: 'inherit',
-    shell: true
+  const nextStart = spawn("npx", ["next", "start"], {
+    stdio: "inherit",
+    shell: true,
   });
 
-  nextStart.on('close', (code) => {
+  nextStart.on("close", (code) => {
     if (code !== 0) {
-      console.log(`\n${COLORS.magenta}Maya AI server stopped with code ${code}${COLORS.reset}`);
+      console.log(
+        `\n${COLORS.magenta}Maya AI server stopped with code ${code}${COLORS.reset}`,
+      );
     }
   });
 }
